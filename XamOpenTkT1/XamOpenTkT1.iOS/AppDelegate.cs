@@ -30,6 +30,7 @@ namespace XamOpenTkT1.iOS
             var mainApp = new App();
             LoadApplication(new XamOpenTkT1.OpenTkT1App(mainApp.mainPage, "OGL"));
 
+            var cp = new OpenGLDemo.ControlSurface();
 
             return base.FinishedLaunching(app, options);
         }

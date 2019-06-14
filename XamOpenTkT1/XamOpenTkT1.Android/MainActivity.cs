@@ -27,8 +27,11 @@ namespace XamOpenTkT1.Droid
             var app = new App();
             LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage,"OGL"));
 
+            //OpenGLDemo.ControlPlane cp = new ControlPlane();
+            var cp = new OpenGLDemo.ControlSurface();
+
             //LoadApplication(new XamOpenTkT1.OpenTkT1App());
-            }
+        }
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
         {
             Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);

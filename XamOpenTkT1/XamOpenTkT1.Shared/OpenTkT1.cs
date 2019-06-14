@@ -1,4 +1,6 @@
-﻿#if !___XAM_FORMS___
+﻿
+using OpenGLDemo;
+#if !___XAM_FORMS___
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -108,6 +110,8 @@ namespace XamOpenTkT1
             MainPage = otherPage;
 
             this.BindingContext = new { cmd1 = "Hi", cmd2 = handler };
+
+            var cp = new OpenGLDemo.ControlSurface();
 
             var op = otherPage as TabbedPage;
 
