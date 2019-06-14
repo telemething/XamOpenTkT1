@@ -8,6 +8,10 @@ namespace XamOpenTkT1
 {
     public partial class App : Application
     {
+        // the ControlSurface allows us to share data and events with the
+        // shared code. We must declare this here in the App to make it
+        // available for reference in all child objects
+        public OpenGLDemo.ControlSurface controlSurface;
 
         public Page mainPage => MainPage;
 
@@ -16,6 +20,28 @@ namespace XamOpenTkT1
             InitializeComponent();
 
             DependencyService.Register<MockDataStore>();
+            MainPage = new MainPage();
+        }
+
+        //*********************************************************************
+        //
+        /// <summary>
+        /// This constructor passes in and saves a reference to the
+        /// ControlSurface.
+        /// </summary>
+        /// <param name="cs"></param>
+        ///
+        //*********************************************************************
+
+        public App(OpenGLDemo.ControlSurface cs)
+        {
+            InitializeComponent();
+
+            DependencyService.Register<MockDataStore>();
+
+            // save a reference to the ControlSurface
+            controlSurface = cs;
+
             MainPage = new MainPage();
         }
 

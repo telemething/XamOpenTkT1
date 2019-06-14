@@ -10,6 +10,8 @@ namespace XamOpenTkT1.Views
     [DesignTimeVisible(false)]
     public partial class MainPage : TabbedPage
     {
+        private OpenGLDemo.ControlSurface controlSurface;
+
         public MainPage()
         {
             InitializeComponent();

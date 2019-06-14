@@ -21,14 +21,12 @@ namespace XamOpenTkT1.Droid
 
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             global::Xamarin.Forms.Forms.Init(this, savedInstanceState);
-            
+
             //LoadApplication(new App());
 
-            var app = new App();
-            LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage,"OGL"));
-
-            //OpenGLDemo.ControlPlane cp = new ControlPlane();
-            var cp = new OpenGLDemo.ControlSurface();
+            var controlSurface = new OpenGLDemo.ControlSurface();
+            var app = new App(controlSurface);
+            LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage,"OGL", controlSurface));
 
             //LoadApplication(new XamOpenTkT1.OpenTkT1App());
         }

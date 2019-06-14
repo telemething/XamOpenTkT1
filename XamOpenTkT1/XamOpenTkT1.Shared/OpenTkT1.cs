@@ -1,6 +1,5 @@
-﻿
+﻿#if !___XAM_FORMS___
 using OpenGLDemo;
-#if !___XAM_FORMS___
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -32,6 +31,14 @@ using OpenTK.Graphics.ES30;
 
 namespace XamOpenTkT1
 {
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// Base OpenGL View class. Adds a few convenience control methods
+    /// </summary>
+    ///
+    /// ***********************************************************************
+    
     public class TTOpenGLView
     {
         private OpenGLView oGLV;
@@ -91,12 +98,19 @@ namespace XamOpenTkT1
         }
     }
 
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// Xamarin Application in shared (not Xamarin.Forms) code
+    /// </summary>
+    ///
+    /// ***********************************************************************
+
     public class OpenTkT1App : Xamarin.Forms.Application
     {
-        public delegate void Del(string message);
-        Del handler = DelegateMethod;
+        private OpenGLDemo.ControlSurface controlSurface;
 
-        public static void DelegateMethod(string message)
+        public static void TestDelegateMethod(string message)
         {
             System.Console.WriteLine(message);
         }
@@ -105,27 +119,66 @@ namespace XamOpenTkT1
         {
             MainPage = new OpenTkT1Page { };
         }
-        public OpenTkT1App(Page otherPage, string replacePageName)
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// The bait and switch constructor. This allows us to embed a page
+        /// from shared code in a Xamarin.Forms.App. This is a trixy way to
+        /// use code which does not exist as a .Net Standard and would
+        /// otherwise clash with Xamarin.Forms, for example, OpenGL.
+        ///
+        /// 1) Accepts another page as an argument, substitute that page as
+        /// this app's main page.
+        /// 2) Accept a child page name, find the child page that matches that
+        /// name, replaces it with this page.
+        /// 3) Accept a ControlSurface as an argument. Set values in that
+        /// ControlSurface to values from this class, to enable two way sharing
+        /// of access to objects like data and delegates.
+        /// 
+        /// </summary>
+        /// <param name="otherPage"></param>
+        /// <param name="replacePageName"></param>
+        /// <param name="cs"></param>
+        ///
+        /// *******************************************************************
+        
+        public OpenTkT1App(Page otherPage, string replacePageName, 
+            OpenGLDemo.ControlSurface cs)
         {
+            // use the given page as the main page for this app
             MainPage = otherPage;
 
-            this.BindingContext = new { cmd1 = "Hi", cmd2 = handler };
+            // set the control surface
+            controlSurface = cs;
 
-            var cp = new OpenGLDemo.ControlSurface();
+            // change a value in the control surface, read it elsewhere to
+            // prove that it was changed
+            cs.Hi = "Hello from OpenTkT1App";
+
+            // Set a delegage in the control surface, call it from
+            // elsewhere to prove that the callback works
+            controlSurface.handler = TestDelegateMethod;
 
             var op = otherPage as TabbedPage;
 
+            // find the child page that matches that name, replace it with
+            // this page
             for (int index = 0; index < op.Children.Count; index++)
             {
                 if (op.Children[index].Title.Equals(replacePageName))
                     op.Children[index] = new OpenTkT1Page { };
-
-                //op.Children[index].BindingContext = new { cmd1 = "Hi", cmd2 = handler };
-
-                //op.Children[index].SetBinding(Page.BindingContextProperty, new Binding("Name"));
             }
         }
     }
+
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// The OpenGL content page in (not Xamarin.Forms) code 
+    /// </summary>
+    ///
+    /// ***********************************************************************
 
     class OpenTkT1Page : ContentPage
     {
@@ -170,6 +223,14 @@ namespace XamOpenTkT1
         }
     }
 
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// OpenGL immediate mode view class, draws a triangle
+    /// </summary>
+    ///
+    /// ***********************************************************************
+
     public class MyOpenGLView : TTOpenGLView
     {
         float red, green, blue;
@@ -195,6 +256,15 @@ namespace XamOpenTkT1
                 blue -= 1.0f;
         }
     }
+
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// OpenGL shader view class. Demonstrates shaders and buffers and such
+    /// things
+    /// </summary>
+    ///
+    /// ***********************************************************************
 
     public class OpenTkTutorialView : TTOpenGLView
     {
@@ -299,17 +369,17 @@ namespace XamOpenTkT1
         }
 
         //*********************************************************************
-            //*
-            //* InitGL
-            //*
-            //* Call this method from within the 'OnDisplay()' method.
-            //* https://stackoverflow.com/questions/17399087/glcreateshader-and-glcreateprogram-fail-on-android
-            //* Shader calls should be within a GL thread that is onSurfaceChanged(),
-            //* onSurfaceCreated() or onDrawFrame()
-            //*
-            //*********************************************************************
+        //*
+        //* InitGL
+        //*
+        //* Call this method from within the 'OnDisplay()' method.
+        //* https://stackoverflow.com/questions/17399087/glcreateshader-and-glcreateprogram-fail-on-android
+        //* Shader calls should be within a GL thread that is onSurfaceChanged(),
+        //* onSurfaceCreated() or onDrawFrame()
+        //*
+        //*********************************************************************
 
-            private void InitGl()
+        private void InitGl()
         {
             
 
