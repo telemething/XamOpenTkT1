@@ -491,11 +491,11 @@ namespace XamOpenTkT1
 
             //*** changed ***
             //_vertexArrayObject = GL.GenVertexArray();
-            int[] vertexArrayObjects = new int[1];
-            GL.GenVertexArrays(1, vertexArrayObjects);
-            _vertexArrayObject = vertexArrayObjects[0];
+            //int[] vertexArrayObjects = new int[1];
+            //GL.GenVertexArrays(1, vertexArrayObjects);
+            //_vertexArrayObject = vertexArrayObjects[0];
 
-            GL.BindVertexArray(_vertexArrayObject);
+            //GL.BindVertexArray(_vertexArrayObject);
 
 
             // Now, we need to setup how the vertex shader will interpret the VBO data; you can send almost any C datatype (and a few non-C ones too) to it.
@@ -559,7 +559,7 @@ namespace XamOpenTkT1
 
         private void InitGl()
         {
-            if(!shadersBuilt)
+            if (!shadersBuilt)
                 BuildShaders();
 
             //var color = ExtractRgbFromPack(_vertices[3]);
@@ -580,12 +580,15 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_indices.Length * sizeof(uint)), _indices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (_vertices.Length * sizeof(float)), _vertices,
+                BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr) (_indices.Length * sizeof(uint)), _indices,
+                BufferUsage.StaticDraw);
 #endif
 
-            // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
-            _shader.Use();
+                // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
+                _shader.Use();
+            
 
             //VAO stores the layout subsequently created with VertexAttribPointer and EnableVertexAttribArray
             GL.GenVertexArrays(1, out _vertexArrayObject);
@@ -646,7 +649,7 @@ namespace XamOpenTkT1
             _shader.Use();
 
             // Bind the VAO
-            GL.BindVertexArray(_vertexArrayObject);
+            //GL.BindVertexArray(_vertexArrayObject);
 
             // And then call our drawing function.
             // For this tutorial, we'll use GL.DrawArrays, which is a very simple rendering function.
@@ -686,7 +689,7 @@ namespace XamOpenTkT1
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 #else
             //GL.DrawArrays(BeginMode.Triangles, 0, 3);
-            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
+            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
 #endif
         }
     }
