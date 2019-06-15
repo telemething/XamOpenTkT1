@@ -304,9 +304,9 @@ namespace XamOpenTkT1
         private float[] _vertices =
         {
             // positions         // colors
-            0.5f,  -0.5f, 0.0f, 4278190080.0f, 0.0f, 0.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f, 16711680.0f, 1.0f, 0.0f,  // bottom left
-            0.0f,  0.5f,  0.0f, 65280.0f, 0.0f, 0.0f   // top 
+            0.5f,  -0.5f, 0.0f, 4278190080.0f,  // bottom right
+            -0.5f, -0.5f, 0.0f, 16711680.0f,  // bottom left
+            0.0f,  0.5f,  0.0f, 65280.0f   // top 
         };
 
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
@@ -325,6 +325,7 @@ namespace XamOpenTkT1
         private TTOpenGl.Shader _shader;
 
         private bool glInitialized = false;
+        private bool shadersBuilt = false;
 
         public OpenTkTutorialView() : base(300, 300)
         {
@@ -396,8 +397,8 @@ namespace XamOpenTkT1
             float d1 = 65280.0f;
 
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
-            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(9 * floatSize), (IntPtr)floatSize, ref d1);
-            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(15 * floatSize), (IntPtr)floatSize, ref d1);
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
         }
 
         //*********************************************************************
@@ -411,9 +412,9 @@ namespace XamOpenTkT1
         //*
         //*********************************************************************
 
-        private void InitGl()
+        private void InitGly()
         {
-            
+
 
             //var color = ExtractRgbFromPack(_vertices[3]);
             //color = ExtractRgbFromPack(_vertices[9]);
@@ -461,7 +462,7 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
              GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData( BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
 #endif
 
             // We've got the vertices done, but how exactly should this be converted to pixels for the final image?
@@ -544,6 +545,67 @@ namespace XamOpenTkT1
             // Setup is now complete! Now we move to the OnRenderFrame function to finally draw the triangle.
         }
 
+        private void BuildShaders()
+        {
+            try
+            {
+                _shader = new TTOpenGl.Shader("shader.vert", "shader.frag");
+                shadersBuilt = true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        private void InitGl()
+        {
+            if(!shadersBuilt)
+                BuildShaders();
+
+            //var color = ExtractRgbFromPack(_vertices[3]);
+            //color = ExtractRgbFromPack(_vertices[9]);
+            //color = ExtractRgbFromPack(_vertices[15]);
+
+            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+            // vertex buffer
+            GL.GenBuffers(1, out _vertexBufferObject);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
+
+            //*** Set buffer data ****
+#if WINDOWS_UWP
+            GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+#else
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
+#endif
+
+            // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
+            _shader.Use();
+
+            //VAO stores the layout subsequently created with VertexAttribPointer and EnableVertexAttribArray
+            GL.GenVertexArrays(1, out _vertexArrayObject);
+            GL.BindVertexArray(_vertexArrayObject);
+
+            //*** position ***
+            int aPositionLocation = _shader.GetAttribLocation("aPosition");
+            // location, element count, type, normalized?, stride bytes, offset bytes
+            GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(aPositionLocation);
+
+            //*** color ***
+            int aColorLocation = _shader.GetAttribLocation("aColor");
+            // location, element count, type, normalized?, stride bytes, offset bytes
+            GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
+            GL.EnableVertexAttribArray(aColorLocation);
+
+            // Bind the VBO again so that the VAO will bind that as well.
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
+
+            // Mark GL as  initialized
+            glInitialized = true;
+        }
+
         //*********************************************************************
         //*
         //* OnDisplay
@@ -553,7 +615,7 @@ namespace XamOpenTkT1
         //*
         //*********************************************************************
 
-        private void OnDisplay(Rectangle obj)
+        private void OnDisplayy(Rectangle obj)
         {
             // GL Initialization must occur on this thread. Make sure it is called only once
             if (!glInitialized)
@@ -587,6 +649,29 @@ namespace XamOpenTkT1
             //     is some variant of a triangle. Since we just want a single triangle, we use Triangles.
             //   Starting index; this is just the start of the data you want to draw. 0 here.
             //   How many vertices you want to draw. 3 for a triangle.
+
+            //*** changed ***
+            //GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+#if WINDOWS_UWP
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+#else
+            GL.DrawArrays(BeginMode.Triangles, 0, 3);
+#endif
+        }
+        private void OnDisplay(Rectangle obj)
+        {
+            // GL Initialization must occur on this thread. Make sure it is called only once
+            if (!glInitialized)
+                InitGl();
+
+            DoUpdateVertexData();
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+
+            // Bind the shader
+            _shader.Use();
+
+            // Bind the VAO
+            GL.BindVertexArray(_vertexArrayObject);
 
             //*** changed ***
             //GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
