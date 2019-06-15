@@ -20,6 +20,9 @@
     <EmbeddedResource Update="Views\OglPage.xaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
+    <EmbeddedResource Update="Views\OpenGlTestPage.xaml">
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </EmbeddedResource>
   </ItemGroup>
 
   <Import Project="..\XamOpenTkT1.Shared\OpenGLDemo.projitems" Label="Shared" />

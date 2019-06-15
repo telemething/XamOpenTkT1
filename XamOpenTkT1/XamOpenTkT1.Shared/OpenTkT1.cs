@@ -109,9 +109,11 @@ namespace XamOpenTkT1
     public class OpenTkT1App : Xamarin.Forms.Application
     {
         private OpenGLDemo.ControlSurface controlSurface;
+        private OpenTkT1Page openTkT1Page;
 
-        public static void TestDelegateMethod(string message)
+        public void TestDelegateMethod(string message)
         {
+            openTkT1Page.openTkTutorialView.SetUpdateVertexData();
             System.Console.WriteLine(message);
         }
 
@@ -161,13 +163,14 @@ namespace XamOpenTkT1
             controlSurface.handler = TestDelegateMethod;
 
             var op = otherPage as TabbedPage;
+            openTkT1Page = new OpenTkT1Page();
 
             // find the child page that matches that name, replace it with
             // this page
             for (int index = 0; index < op.Children.Count; index++)
             {
                 if (op.Children[index].Title.Equals(replacePageName))
-                    op.Children[index] = new OpenTkT1Page { };
+                    op.Children[index] = openTkT1Page;
             }
         }
     }
@@ -182,16 +185,18 @@ namespace XamOpenTkT1
 
     class OpenTkT1Page : ContentPage
     {
+        public OpenTkTutorialView openTkTutorialView;
+
         public OpenTkT1Page()
         {
-            //var myView = new TTOpenGLView(OnDisplay, 300, 300);
+            //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
 
-            //var myView = new MyOpenGLView();
-            var myView = new OpenTkTutorialView();
+            //var openTkTutorialView = new MyOpenGLView();
+            openTkTutorialView = new OpenTkTutorialView();
 
             Title = "OpenGL";
 
-            var view = myView.View;
+            var view = openTkTutorialView.View;
 
             var toggle = new Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
@@ -201,16 +206,16 @@ namespace XamOpenTkT1
                 var tt = this.BindingContext;
 
                 if (toggle.IsToggled)
-                    myView.Render(TTOpenGLView.RenderTypeEnum.run);
+                    openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.run);
                 else
-                    myView.Render(TTOpenGLView.RenderTypeEnum.stop);
+                    openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.stop);
             };
 
             button.Clicked += (s, a) =>
             {
                 var tt = this.BindingContext;
 
-                myView.Render(TTOpenGLView.RenderTypeEnum.single);
+                openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
             };
 
             var stack = new StackLayout
@@ -296,7 +301,7 @@ namespace XamOpenTkT1
          //   0.0f,  0.5f,  0.0f, 255.0f, 0.0f, 1.0f   // top 
         //};
 
-        private readonly float[] _vertices =
+        private float[] _vertices =
         {
             // positions         // colors
             0.5f,  -0.5f, 0.0f, 4278190080.0f, 0.0f, 0.0f,  // bottom right
@@ -339,6 +344,7 @@ namespace XamOpenTkT1
             base.OnDisplayHandler = OnDisplay;
         }
 
+        #region Shader Test Region
         private float[] ExtractRgbFromPacky(float inColor)
         {
             uint ucolor = (uint)inColor;
@@ -366,6 +372,32 @@ namespace XamOpenTkT1
             // now we have a vec3 with the 3 components in range [0..255]. Let's normalize it!
             //return color / 255.0;
             return color;
+        }
+        #endregion
+
+        private bool haveNewVertexData = false;
+
+        // Updating buffer data can only take place in the OpenGL thread, so is a
+        // two step process. 1) we signal the update here, 2) we execute the update
+        // by calling DoUpdateVertexData() from OnDisplay()
+        public void SetUpdateVertexData()
+        {
+            haveNewVertexData = true;
+        }
+
+        public void DoUpdateVertexData()
+        {
+            if (!haveNewVertexData)
+                return;
+
+            haveNewVertexData = false;
+
+            var floatSize = sizeof(float);
+            float d1 = 65280.0f;
+
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(9 * floatSize), (IntPtr)floatSize, ref d1);
+            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(15 * floatSize), (IntPtr)floatSize, ref d1);
         }
 
         //*********************************************************************
@@ -526,6 +558,8 @@ namespace XamOpenTkT1
             // GL Initialization must occur on this thread. Make sure it is called only once
             if (!glInitialized)
                 InitGl();
+
+            DoUpdateVertexData();
 
             // This clears the image, using what you set as GL.ClearColor earlier.
             // OpenGL provides several different types of data that can be rendered.
