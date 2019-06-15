@@ -304,24 +304,23 @@ namespace XamOpenTkT1
         private float[] _vertices =
         {
             // positions         // colors
+            0.5f,  0.5f, 0.0f, 4278190080.0f,  // bottom right
             0.5f,  -0.5f, 0.0f, 4278190080.0f,  // bottom right
             -0.5f, -0.5f, 0.0f, 16711680.0f,  // bottom left
-            0.0f,  0.5f,  0.0f, 65280.0f   // top 
+            -0.5f,  0.5f,  0.0f, 65280.0f   // top 
         };
 
-        // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
-        // graphics card. Consider them sort of like a pointer; we can't do anything with them directly, but we can
-        // send them to OpenGL functions that need them.
+        private uint[] _indices =
+        {
+            0, 1, 3, // The first triangle will be the bottom-right half of the triangle
+            1, 2, 3  // Then the second will be the top-right half of the triangle
+        };
 
-        // What these objects are will be explained in OnLoad.
+        // Buffer handles
         private int _vertexBufferObject;
         private int _vertexArrayObject;
+        private int _elementBufferObject;
 
-        // This class is a wrapper around a shader, which helps us manage it.
-        // The shader class's code is in the Common project.
-        // What shaders are and what they're used for will be explained later in this tutorial.
-
-        //*** changed ***
         private TTOpenGl.Shader _shader;
 
         private bool glInitialized = false;
@@ -573,11 +572,16 @@ namespace XamOpenTkT1
             GL.GenBuffers(1, out _vertexBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
 
+            // element buffer
+            GL.GenBuffers(1, out _elementBufferObject);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
+
             //*** Set buffer data ****
 #if WINDOWS_UWP
             GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
 #else
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_indices.Length * sizeof(uint)), _indices, BufferUsage.StaticDraw);
 #endif
 
             // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
@@ -599,8 +603,11 @@ namespace XamOpenTkT1
             GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(aColorLocation);
 
-            // Bind the VBO again so that the VAO will bind that as well.
+            // Bind the VBO and EBO again so that the VAO will bind them as well.
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
+
+            GL.BindVertexArray(0);
 
             // Mark GL as  initialized
             glInitialized = true;
@@ -678,7 +685,8 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 #else
-            GL.DrawArrays(BeginMode.Triangles, 0, 3);
+            //GL.DrawArrays(BeginMode.Triangles, 0, 3);
+            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
 #endif
         }
     }
