@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ControlSurface.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)OGlUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)OpenTkT1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shader.cs" />
   </ItemGroup>

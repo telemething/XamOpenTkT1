@@ -119,7 +119,7 @@ namespace XamOpenTkT1
 
         public OpenTkT1App()
         {
-            MainPage = new OpenTkT1Page { };
+            MainPage = new OpenTkT1Page(controlSurface);
         }
 
         //*********************************************************************
@@ -163,7 +163,7 @@ namespace XamOpenTkT1
             controlSurface.handler = TestDelegateMethod;
 
             var op = otherPage as TabbedPage;
-            openTkT1Page = new OpenTkT1Page();
+            openTkT1Page = new OpenTkT1Page(controlSurface);
 
             // find the child page that matches that name, replace it with
             // this page
@@ -185,37 +185,37 @@ namespace XamOpenTkT1
 
     class OpenTkT1Page : ContentPage
     {
-        public OpenTkTutorialView openTkTutorialView;
+        private OpenTkTutorialView _openTkTutorialView;
+        public OpenTkTutorialView openTkTutorialView
+        {
+            get => _openTkTutorialView;
+        }
 
-        public OpenTkT1Page()
+        public OpenTkT1Page(OpenGLDemo.ControlSurface controlSurface)
         {
             //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
 
             //var openTkTutorialView = new MyOpenGLView();
-            openTkTutorialView = new OpenTkTutorialView();
+            _openTkTutorialView = new OpenTkTutorialView(controlSurface);
 
             Title = "OpenGL";
 
-            var view = openTkTutorialView.View;
+            var view = _openTkTutorialView.View;
 
             var toggle = new Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
 
             toggle.Toggled += (s, a) =>
             {
-                var tt = this.BindingContext;
-
                 if (toggle.IsToggled)
-                    openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.run);
+                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.run);
                 else
-                    openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.stop);
+                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.stop);
             };
 
             button.Clicked += (s, a) =>
             {
-                var tt = this.BindingContext;
-
-                openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
+                _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
             };
 
             var stack = new StackLayout
@@ -273,6 +273,8 @@ namespace XamOpenTkT1
 
     public class OpenTkTutorialView : TTOpenGLView
     {
+        private OpenGLDemo.ControlSurface controlSurface;
+
         // Create the vertices for our triangle. These are listed in normalized device coordinates (NDC)
         // In NDC, (0, 0) is the center of the screen.
         // Negative X coordinates move to the left, positive X move to the right.
@@ -295,10 +297,10 @@ namespace XamOpenTkT1
 
         //private readonly float[] _vertices =
         //{
-            // positions         // colors
-         //   0.5f,  -0.5f, 0.0f, 16711680.0f, 0.0f, 0.0f,  // bottom right
-         //   -0.5f, -0.5f, 0.0f, 65280.0f, 1.0f, 0.0f,  // bottom left
-         //   0.0f,  0.5f,  0.0f, 255.0f, 0.0f, 1.0f   // top 
+        // positions         // colors
+        //   0.5f,  -0.5f, 0.0f, 16711680.0f, 0.0f, 0.0f,  // bottom right
+        //   -0.5f, -0.5f, 0.0f, 65280.0f, 1.0f, 0.0f,  // bottom left
+        //   0.0f,  0.5f,  0.0f, 255.0f, 0.0f, 1.0f   // top 
         //};
 
         private float[] _vertices =
@@ -326,8 +328,9 @@ namespace XamOpenTkT1
         private bool glInitialized = false;
         private bool shadersBuilt = false;
 
-        public OpenTkTutorialView() : base(300, 300)
+        public OpenTkTutorialView(OpenGLDemo.ControlSurface cs) : base(300, 300)
         {
+            controlSurface = cs;
             OnLoad();
         }
 
@@ -398,6 +401,116 @@ namespace XamOpenTkT1
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        ///
+        /// allows fast transfer in GPU with:
+        /// GL.CopyBufferSubData(BufferTarget.CopyWriteBuffer, BufferTarget.ArrayBuffer,
+        ///     IntPtr.Zero, IntPtr.Zero, (IntPtr)32);
+        /// </summary>
+        ///
+        /// GLAPI / glMapBufferRange : https://www.khronos.org/opengl/wiki/GLAPI/glMapBufferRange
+        /// Buffer Object : https://www.khronos.org/opengl/wiki/Buffer_Object#Data_Specification
+        /// https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_copy_buffer.txt
+        ///
+        /// MapReadBit = 1,
+        /// MapWriteBit = 2,
+        /// MapInvalidateRangeBit = 4,
+        /// MapInvalidateBufferBit = 8,
+        /// MapFlushExplicitBit = 16,
+        /// MapUnsynchronizedBit = 32
+        ///
+        //***********************************************************************************
+
+        private void MapCopyBuffersy()
+        {
+            //IntPtr bufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
+            //IntPtr elementPointer = GL.MapBufferRange(BufferTarget.ElementArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
+
+            OGlUtil.ClearOGLErrors();
+
+            float[] testData1 =
+            {
+                // positions         // colors
+                0.5f,  0.5f, 0.0f, 4278190080.0f,  // bottom right
+                0.5f,  -0.5f, 0.0f, 4278190080.0f,  // bottom right
+                -0.5f, -0.5f, 0.0f, 16711680.0f,  // bottom left
+                -0.5f,  0.5f,  0.0f, 65280.0f   // top 
+            };
+
+            uint[] testData2 =
+            {
+                0, 1, 3, // The first triangle will be the bottom-right half of the triangle
+                1, 2, 3  // Then the second will be the top-right half of the triangle
+            };
+
+
+            int _copyReadBuffer;
+            int _copyWriteBuffer;
+
+            // ReadBuffer
+            GL.GenBuffers(1, out _copyReadBuffer);
+
+            OGlUtil.CheckOGLError();
+
+            GL.BindBuffer(BufferTarget.CopyReadBuffer, _copyReadBuffer);
+
+            OGlUtil.CheckOGLError();
+
+#if WINDOWS_UWP
+            GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)32,  (IntPtr)null, BufferUsageHint.StaticDraw);
+#else
+            GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)(testData1.Length * sizeof(float)), testData1, BufferUsage.StaticDraw);
+#endif
+            OGlUtil.CheckOGLError();
+
+            controlSurface.CopyReadBufferPointer = GL.MapBufferRange(BufferTarget.CopyReadBuffer,
+                IntPtr.Zero, (IntPtr)(testData1.Length * sizeof(float)), BufferAccessMask.MapUnsynchronizedBit);
+
+            OGlUtil.CheckOGLError();
+
+            //WriteBuffer
+            GL.GenBuffers(1, out _copyWriteBuffer);
+            GL.BindBuffer(BufferTarget.CopyWriteBuffer, _copyWriteBuffer);
+#if WINDOWS_UWP
+            GL.BufferData(BufferTarget.CopyWriteBuffer, (IntPtr)32, (IntPtr)null, BufferUsageHint.StaticDraw);
+#else
+            GL.BufferData(BufferTarget.CopyWriteBuffer, (IntPtr)(testData2.Length * sizeof(uint)), testData2, BufferUsage.StaticDraw);
+#endif
+            controlSurface.CopyWriteBufferPointer = GL.MapBufferRange(BufferTarget.CopyWriteBuffer,
+                IntPtr.Zero, (IntPtr)(testData2.Length * sizeof(uint)), BufferAccessMask.MapUnsynchronizedBit);
+        }
+
+        private void MapCopyBuffers()
+        {
+            OGlUtil.ClearOGLErrors();
+            controlSurface.ArrayBufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, 
+                IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
+            OGlUtil.CheckOGLError();
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
+
+        private void BuildShaders()
+        {
+            try
+            {
+                _shader = new TTOpenGl.Shader("shader.vert", "shader.frag");
+                shadersBuilt = true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
         //*********************************************************************
@@ -544,23 +657,15 @@ namespace XamOpenTkT1
             // Setup is now complete! Now we move to the OnRenderFrame function to finally draw the triangle.
         }
 
-        private void BuildShaders()
-        {
-            try
-            {
-                _shader = new TTOpenGl.Shader("shader.vert", "shader.frag");
-                shadersBuilt = true;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
-        }
-
         private void InitGl()
         {
             if (!shadersBuilt)
+            {
                 BuildShaders();
+                //MapCopyBuffers();
+            }
+
+            //controlSurface
 
             //var color = ExtractRgbFromPack(_vertices[3]);
             //color = ExtractRgbFromPack(_vertices[9]);
@@ -576,6 +681,10 @@ namespace XamOpenTkT1
             GL.GenBuffers(1, out _elementBufferObject);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
 
+            // element buffer
+            //GL.GenBuffers(1, out _elementBufferObject);
+            //GL.BindBuffer(BufferTarget.CopyWriteBuffer, _elementBufferObject);
+
             //*** Set buffer data ****
 #if WINDOWS_UWP
             GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
@@ -586,9 +695,14 @@ namespace XamOpenTkT1
                 BufferUsage.StaticDraw);
 #endif
 
-                // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
-                _shader.Use();
-            
+            // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
+            _shader.Use();
+
+            MapCopyBuffers();
+
+            //var ec = GL.GetErrorCode();
+            //IntPtr vv = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
+            // ec = GL.GetErrorCode();
 
             //VAO stores the layout subsequently created with VertexAttribPointer and EnableVertexAttribArray
             GL.GenVertexArrays(1, out _vertexArrayObject);

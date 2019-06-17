@@ -27,6 +27,10 @@ namespace OpenGLDemo
         public string Hi = "Hello";
         public bool bTest = false;
 
+        public IntPtr CopyReadBufferPointer;
+        public IntPtr CopyWriteBufferPointer;
+        public IntPtr ArrayBufferPointer;
+
         public ControlSurface()
         { }
 
