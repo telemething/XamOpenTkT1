@@ -111,11 +111,42 @@ namespace XamOpenTkT1
         private OpenGLDemo.ControlSurface controlSurface;
         private OpenTkT1Page openTkT1Page;
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="message"></param>
+        ///
+        //*********************************************************************
+
         public void TestDelegateMethod(string message)
         {
             openTkT1Page.openTkTutorialView.SetUpdateVertexData();
             System.Console.WriteLine(message);
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pc"></param>
+        ///
+        //*********************************************************************
+
+        public void GotNewPointcloudData(RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pc)
+        {
+            System.Console.WriteLine("Got new pointcloud data");
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
 
         public OpenTkT1App()
         {
@@ -158,9 +189,11 @@ namespace XamOpenTkT1
             // prove that it was changed
             cs.Hi = "Hello from OpenTkT1App";
 
-            // Set a delegage in the control surface, call it from
+            // Set a delegate in the control surface, call it from
             // elsewhere to prove that the callback works
             controlSurface.handler = TestDelegateMethod;
+
+            controlSurface.GotNewPointcloudData = GotNewPointcloudData;
 
             var op = otherPage as TabbedPage;
             openTkT1Page = new OpenTkT1Page(controlSurface);
@@ -173,6 +206,7 @@ namespace XamOpenTkT1
                     op.Children[index] = openTkT1Page;
             }
         }
+
     }
 
     //*************************************************************************

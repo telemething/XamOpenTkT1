@@ -53,6 +53,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>12.0.2</Version>
+    </PackageReference>
     <PackageReference Include="Xamarin.Forms" Version="4.0.0.482894" />
     <PackageReference Include="Xamarin.Android.Support.Design" Version="28.0.0.1" />
     <PackageReference Include="Xamarin.Android.Support.v7.AppCompat" Version="28.0.0.1" />
@@ -99,6 +102,10 @@
     <Folder Include="Resources\drawable-xxxhdpi\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\TTPointCloudLib\TTPointCloudLib.csproj">
+      <Project>{0e8e0cd9-ed84-4d46-8421-c06dfffe0aac}</Project>
+      <Name>TTPointCloudLib</Name>
+    </ProjectReference>
     <ProjectReference Include="..\XamOpenTkT1\XamOpenTkT1.csproj">
       <Project>{2E6CC7DB-EEF5-4687-B4F3-3CDD72580F6C}</Project>
       <Name>XamOpenTkT1</Name>

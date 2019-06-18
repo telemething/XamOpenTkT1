@@ -30,4 +30,7 @@
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\shader.frag.glsl" />
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\shader.vert.glsl" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)DataFiles\pointcloudfile.bin" />
+  </ItemGroup>
 </Project>

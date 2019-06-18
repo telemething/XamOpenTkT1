@@ -10,8 +10,12 @@
             <Label Text="OpenGL Test"
                 VerticalOptions="CenterAndExpand" 
                 HorizontalOptions="CenterAndExpand" />
-            <Button Margin="0,10,0,0" Text="Test Now"
-                    Clicked="OnTestNowButtonClicked"
+            <Button Margin="0,10,0,0" Text="Test read and callback"
+                    Clicked="OnTestReadAndCallbackButtonClicked"
+                    BackgroundColor="Green"
+                    TextColor="White" />
+            <Button Margin="0,10,0,0" Text="Read and display PC file"
+                    Clicked="OnReadAndDisplayPcFileClicked"
                     BackgroundColor="Green"
                     TextColor="White" />
         </StackLayout>

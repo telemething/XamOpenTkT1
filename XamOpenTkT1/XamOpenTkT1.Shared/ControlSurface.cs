@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using RosSharp.RosBridgeClient.Messages.Sensor;
 
 namespace OpenGLDemo
 {
@@ -21,6 +22,9 @@ namespace OpenGLDemo
 
         public delegate void TestDelegate(string message);
         public TestDelegate handler;
+
+        public delegate void GotNewPointcloudDataDelegate(PointCloud2 pc);
+        public GotNewPointcloudDataDelegate GotNewPointcloudData;
 
         public string Hi = "Hello";
         public bool bTest = false;
