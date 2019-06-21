@@ -271,7 +271,11 @@ namespace TTOpenGl
         public void SetMatrix4(string name, Matrix4 data)
         {
             GL.UseProgram(Handle);
-            GL.UniformMatrix4(_uniformLocations[name], true, ref data);
+
+            var gg = _uniformLocations[name];
+
+            GL.UniformMatrix4(_uniformLocations[name], false, ref data);
+            var ec = GL.GetErrorCode();
         }
 
         /// <summary>

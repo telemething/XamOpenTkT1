@@ -70,8 +70,6 @@ namespace XamOpenTkT1
                 WidthRequest = widthRequest,
                 OnDisplay = onDisplay
             };
-
-            
         }
 
         public enum RenderTypeEnum
@@ -137,6 +135,7 @@ namespace XamOpenTkT1
 
         public void GotNewPointcloudData(RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pc)
         {
+            openTkT1Page.openTkTutorialView.SetUpdateVertexData(pc);
             System.Console.WriteLine("Got new pointcloud data");
         }
 
@@ -308,42 +307,33 @@ namespace XamOpenTkT1
     public class OpenTkTutorialView : TTOpenGLView
     {
         private OpenGLDemo.ControlSurface controlSurface;
+        private RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pointCloudData;
 
         // Create the vertices for our triangle. These are listed in normalized device coordinates (NDC)
         // In NDC, (0, 0) is the center of the screen.
         // Negative X coordinates move to the left, positive X move to the right.
         // Negative Y coordinates move to the bottom, positive Y move to the top.
-        // OpenGL only supports rendering in 3D, so to create a flat triangle, the Z coordinate will be kept as 0.
-        //private readonly float[] _vertices =
-        //{
-        //    -0.5f, -0.5f, 0.0f, // Bottom-left vertex
-        //    0.5f, -0.5f, 0.0f, // Bottom-right vertex
-        //    0.0f,  0.5f, 0.0f  // Top vertex
-        //};
 
-        //private readonly float[] _vertices =
-        //{
-        // positions         // colors
-        //    0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom right
-        //    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
-        //    0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f   // top 
-        //};
+        const Single colorBlue= 4278190080.0f;
+        const Single colorGreen = 16711680.0f;
+        const Single colorRed = 65280.0f;
 
-        //private readonly float[] _vertices =
-        //{
-        // positions         // colors
-        //   0.5f,  -0.5f, 0.0f, 16711680.0f, 0.0f, 0.0f,  // bottom right
-        //   -0.5f, -0.5f, 0.0f, 65280.0f, 1.0f, 0.0f,  // bottom left
-        //   0.0f,  0.5f,  0.0f, 255.0f, 0.0f, 1.0f   // top 
-        //};
+        private float[] _verticesy =
+        {
+            // positions         // colors
+            0.5f,  0.5f, 0.0f, colorRed,  // top right
+            0.5f,  -0.5f, 0.0f, colorRed,  // bottom right
+            -0.5f, -0.5f, 0.0f, colorBlue,  // bottom left
+            -0.5f,  0.5f,  0.0f, colorGreen   // top left
+        };
 
         private float[] _vertices =
         {
             // positions         // colors
-            0.5f,  0.5f, 0.0f, 4278190080.0f,  // bottom right
-            0.5f,  -0.5f, 0.0f, 4278190080.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f, 16711680.0f,  // bottom left
-            -0.5f,  0.5f,  0.0f, 65280.0f   // top 
+            0.5f,  0.5f, 0.0f, colorRed,  // top right
+            0.5f,  -0.5f, 0.0f, colorRed,  // bottom right
+            -0.5f, -0.5f, 0.0f, colorBlue,  // bottom left
+            -0.5f,  0.5f,  0.0f, colorGreen   // top left
         };
 
         private uint[] _indices =
@@ -351,6 +341,9 @@ namespace XamOpenTkT1
             0, 1, 3, // The first triangle will be the bottom-right half of the triangle
             1, 2, 3  // Then the second will be the top-right half of the triangle
         };
+
+        // transform intitialized to do nothing
+        private Matrix4 _transform = Matrix4.Identity;
 
         // Buffer handles
         private int _vertexBufferObject;
@@ -412,6 +405,7 @@ namespace XamOpenTkT1
         }
         #endregion
 
+        private bool haveNewTestCubeVertexData = false;
         private bool haveNewVertexData = false;
 
         // Updating buffer data can only take place in the OpenGL thread, so is a
@@ -419,22 +413,74 @@ namespace XamOpenTkT1
         // by calling DoUpdateVertexData() from OnDisplay()
         public void SetUpdateVertexData()
         {
+            haveNewTestCubeVertexData = true;
+        }
+
+        public void SetUpdateVertexData(RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pc)
+        {
+            pointCloudData = pc;
             haveNewVertexData = true;
         }
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// glBufferData : https://www.khronos.org/opengl/wiki/GLAPI/glBufferData
+        /// Buffer Object Streaming : https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming
+        /// thread on streaming : https://community.khronos.org/t/vbos-strangely-slow/60109/32
+        /// </summary>
+        ///
+        //*********************************************************************
+
         public void DoUpdateVertexData()
         {
-            if (!haveNewVertexData)
-                return;
+            if (haveNewVertexData)
+            {
+                haveNewVertexData = false;
 
-            haveNewVertexData = false;
+                // do we need a new BindBuffer operation?
+
+                // do we need a new index array too?
+
+                // will this work somehow?
+                // GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
+
+                //*** Set new buffer data ****
+#if WINDOWS_UWP
+                GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+#else
+                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices,
+                    BufferUsage.StaticDraw);
+
+                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_indices.Length * sizeof(uint)), _indices,
+                    BufferUsage.StaticDraw);
+#endif
+
+                return;
+            }
+
+            if (haveNewTestCubeVertexData)
+                DoUpdateTestCubeVertexData();
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
+
+        public void DoUpdateTestCubeVertexData()
+        {
+            haveNewTestCubeVertexData = false;
 
             var floatSize = sizeof(float);
             float d1 = 65280.0f;
 
-            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
-            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
-            GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
+             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
+             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
+             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
         }
 
         //*********************************************************************
@@ -518,8 +564,21 @@ namespace XamOpenTkT1
                 IntPtr.Zero, (IntPtr)(testData2.Length * sizeof(uint)), BufferAccessMask.MapUnsynchronizedBit);
         }
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
+
         private void MapCopyBuffers()
         {
+            //*** TODO * Look into this
+            // https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object
+            //GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero, (IntPtr) (_vertices.Length * sizeof(float)),
+            //    BufferAccessMask.MapWriteBit);
+
             OGlUtil.ClearOGLErrors();
             controlSurface.ArrayBufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, 
                 IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
@@ -548,21 +607,45 @@ namespace XamOpenTkT1
         }
 
         //*********************************************************************
-        //*
-        //* InitGL
-        //*
-        //* Call this method from within the 'OnDisplay()' method.
-        //* https://stackoverflow.com/questions/17399087/glcreateshader-and-glcreateprogram-fail-on-android
-        //* Shader calls should be within a GL thread that is onSurfaceChanged(),
-        //* onSurfaceCreated() or onDrawFrame()
-        //*
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
         //*********************************************************************
+
+        private Matrix4 BuildTransform()
+        {
+            //var transform = Matrix4.Identity;
+
+            var ec = GL.GetErrorCode();
+
+            var rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20.0f));
+            var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
+            var translation = Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f);
+            Matrix4 transform = rotation * scale * translation;
+
+            return transform;
+        }
+
+        ///*********************************************************************
+        ///
+        /// <summary>
+        /// Call this method from within the 'OnDisplay()' method.
+        /// https://stackoverflow.com/questions/17399087/glcreateshader-and-glcreateprogram-fail-on-android
+        /// Shader calls should be within a GL thread that is onSurfaceChanged(),
+        /// onSurfaceCreated() or onDrawFrame()
+        /// Vertex Specification : https://www.khronos.org/opengl/wiki/Vertex_Specification
+        /// </summary>
+        ///
+        ///*********************************************************************
 
         private void InitGl()
         {
             if (!shadersBuilt)
             {
                 BuildShaders();
+                _transform = BuildTransform();
                 //MapCopyBuffers();
             }
 
@@ -571,6 +654,12 @@ namespace XamOpenTkT1
             //var color = ExtractRgbFromPack(_vertices[3]);
             //color = ExtractRgbFromPack(_vertices[9]);
             //color = ExtractRgbFromPack(_vertices[15]);
+
+            // https://github.com/xamarin/xamarin-macios/blob/master/src/OpenGL/OpenTK/Graphics/OpenGL/GLEnums.cs
+            //ProgramPointSize = ((int)0x8642)
+            //GL.Enable((EnableCap)((int)0x8642));
+            //GL.Enable(EnableCap.ProgramPointSize);
+            //GL.ProgramParameter(1,ProgramParameterName., 0);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -599,11 +688,8 @@ namespace XamOpenTkT1
             // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
             _shader.Use();
 
+            //*** TODO * Problem: If we map the buffer, then the GL.BufferSubData() call appears to have no effect
             MapCopyBuffers();
-
-            //var ec = GL.GetErrorCode();
-            //IntPtr vv = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
-            // ec = GL.GetErrorCode();
 
             //VAO stores the layout subsequently created with VertexAttribPointer and EnableVertexAttribArray
             GL.GenVertexArrays(1, out _vertexArrayObject);
@@ -647,6 +733,7 @@ namespace XamOpenTkT1
                 InitGl();
 
             DoUpdateVertexData();
+
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
             // Bind the shader
@@ -655,13 +742,17 @@ namespace XamOpenTkT1
             // Bind the VAO
             GL.BindVertexArray(_vertexArrayObject);
 
-            //*** changed ***
-            //GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+            // Transform
+            _shader.SetMatrix4("transform", _transform);
+
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 #else
-            //GL.DrawArrays(BeginMode.Triangles, 0, 3);
-            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
+            GL.LineWidth((float)2.0);
+            //GL.DrawArrays(BeginMode.Triangles, 0, 3); // Original
+            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
+            //GL.DrawElements(BeginMode.Points, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
+            //GL.DrawArrays(BeginMode.Points, 0, 4);
 #endif
         }
     }

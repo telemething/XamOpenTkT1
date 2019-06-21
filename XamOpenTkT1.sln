@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XamOpenTkT1", "XamOpenTkT1\
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "XamOpenTkT1.Shared", "XamOpenTkT1\XamOpenTkT1.Shared\XamOpenTkT1.Shared.shproj", "{B7DD8B60-20D3-4C2B-AFB6-3446B564B37C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TTPointCloudLib", "TTPointCloudLib\TTPointCloudLib.csproj", "{0E8E0CD9-ED84-4D46-8421-C06DFFFE0AAC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TTPointCloudLib", "TTPointCloudLib\TTPointCloudLib.csproj", "{0E8E0CD9-ED84-4D46-8421-C06DFFFE0AAC}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
