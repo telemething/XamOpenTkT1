@@ -318,15 +318,7 @@ namespace XamOpenTkT1
         const Single colorGreen = 16711680.0f;
         const Single colorRed = 65280.0f;
 
-        private float[] _verticesy =
-        {
-            // positions         // colors
-            0.5f,  0.5f, 0.0f, colorRed,  // top right
-            0.5f,  -0.5f, 0.0f, colorRed,  // bottom right
-            -0.5f, -0.5f, 0.0f, colorBlue,  // bottom left
-            -0.5f,  0.5f,  0.0f, colorGreen   // top left
-        };
-
+        /* draws a square, must use 'BeginMode.Triangles' in 'GL.DrawElements' below
         private float[] _vertices =
         {
             // positions         // colors
@@ -340,6 +332,29 @@ namespace XamOpenTkT1
         {
             0, 1, 3, // The first triangle will be the bottom-right half of the triangle
             1, 2, 3  // Then the second will be the top-right half of the triangle
+        };
+        */
+
+        /* draws a cube, must use 'BeginMode.TriangleStrip' in 'GL.DrawElements' below */
+        private const Single height = 0.1f;
+        private const Single width = 0.1f;
+        private const Single depth = 0.1f;
+
+        private float[] _vertices =
+        {
+            -width, -height, depth, colorRed,// 0
+            width, -height, depth, colorBlue,// 1
+            -width, height, depth, colorGreen,// 2
+            width, height, depth, colorRed,// 3
+            -width, -height, -depth, colorBlue,// 4
+            width, -height, -depth, colorGreen,// 5
+            -width, height, -depth, colorRed,// 6
+            width, height, -depth, colorBlue // 7
+        };
+
+        private uint[] _indices =
+        {
+            0, 1, 2, 3, 7, 1, 5, 4, 7, 6, 2, 4, 0, 1
         };
 
         // transform intitialized to do nothing
@@ -620,7 +635,9 @@ namespace XamOpenTkT1
 
             var ec = GL.GetErrorCode();
 
-            var rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20.0f));
+            var rotation1 = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20.0f));
+            var rotation2 = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(20.0f));
+            var rotation = rotation1 * rotation2;
             var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
             var translation = Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f);
             Matrix4 transform = rotation * scale * translation;
@@ -662,6 +679,7 @@ namespace XamOpenTkT1
             //GL.ProgramParameter(1,ProgramParameterName., 0);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.Enable(EnableCap.DepthTest);
 
             // vertex buffer
             GL.GenBuffers(1, out _vertexBufferObject);
@@ -734,7 +752,7 @@ namespace XamOpenTkT1
 
             DoUpdateVertexData();
 
-            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             // Bind the shader
             _shader.Use();
@@ -750,10 +768,13 @@ namespace XamOpenTkT1
 #else
             GL.LineWidth((float)2.0);
             //GL.DrawArrays(BeginMode.Triangles, 0, 3); // Original
-            GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
+            //GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
+            GL.DrawElements(BeginMode.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
             //GL.DrawElements(BeginMode.Points, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
             //GL.DrawArrays(BeginMode.Points, 0, 4);
-#endif
+
+            //GL.DrawElementsInstanced();
+#endif      
         }
     }
 
