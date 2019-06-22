@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 using Xamarin.Forms;
+using System.Diagnostics;
 #if __IOS__
 using UIKit;
 using OpenTK;
@@ -246,7 +247,7 @@ namespace XamOpenTkT1
 
             var view = _openTkTutorialView.View;
 
-            var toggle = new Switch { IsToggled = true };
+            var toggle = new Xamarin.Forms.Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
 
             toggle.Toggled += (s, a) =>
@@ -319,6 +320,7 @@ namespace XamOpenTkT1
     {
         private OpenGLDemo.ControlSurface controlSurface;
         private RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pointCloudData;
+        Stopwatch _stopwatch = new Stopwatch();
 
         // Create the vertices for our triangle. These are listed in normalized device coordinates (NDC)
         // In NDC, (0, 0) is the center of the screen.
@@ -386,7 +388,7 @@ namespace XamOpenTkT1
         private Matrix4 _transform = Matrix4.Identity;
 
         // camera
-        private Camera _camera;
+        private OpenGLDemo.Camera _camera;
         private bool _firstMove = true;
         private Vector2 _lastPos;
 
@@ -405,6 +407,7 @@ namespace XamOpenTkT1
 
         public OpenTkTutorialView(OpenGLDemo.ControlSurface cs) : base(300, 300)
         {
+            _stopwatch.Start();
             controlSurface = cs;
             OnLoad();
         }
@@ -782,7 +785,7 @@ namespace XamOpenTkT1
 
             // We initialize the camera so that it is 3 units back from where the rectangle is
             // and give it the proper aspect ratio
-            _camera = new Camera(Vector3.UnitZ * 3, (float)(WidthInPixels / HeightInPixels));
+            _camera = new OpenGLDemo.Camera(Vector3.UnitZ * 3, (float)(WidthInPixels / HeightInPixels));
 
             // Mark GL as  initialized
             glInitialized = true;
@@ -814,10 +817,11 @@ namespace XamOpenTkT1
             GL.BindVertexArray(_vertexArrayObject);
 
             // Transform
-            _shader.SetMatrix4("transform", _transform);
+            //_shader.SetMatrix4("transform", _transform);
 
-            //var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
-            //_shader.SetMatrix4("model", model);
+            _time = _stopwatch.ElapsedMilliseconds / 40;
+            var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
+            _shader.SetMatrix4("model", model);
             //_shader.SetMatrix4("view", _camera.GetViewMatrix());
             //_shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
