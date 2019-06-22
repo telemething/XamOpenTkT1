@@ -1,4 +1,5 @@
 ﻿attribute vec3 aPosition;
+attribute vec3 aOffset;
 attribute float aColor;
 varying vec3 ourColor;
 uniform mat4 transform;
@@ -13,7 +14,8 @@ vec3 unpackColor(float f)
 void main(void)
 {
 	gl_PointSize = 0.1;
-	gl_Position = transform * vec4(aPosition, 1.0);
+	gl_Position = transform * vec4(aPosition + aOffset, 1.0);
+	//gl_Position = transform * vec4(aPosition, 1.0);
 	//gl_Position = vec4(aPosition, 1.0);
 	ourColor = unpackColor(aColor);
 }

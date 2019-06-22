@@ -357,6 +357,20 @@ namespace XamOpenTkT1
             0, 1, 2, 3, 7, 1, 5, 4, 7, 6, 2, 4, 0, 1
         };
 
+        /*private float[] _instances =
+        {
+            -0.3f, -0.3f, -0.3f, colorRed,// 0
+            0.0f, 0.0f, 0.0f, colorGreen,// 0
+            0.3f, 0.3f, 0.3f, colorBlue // 0
+        };*/
+
+        private float[] _instances =
+        {
+            0.0f, 0.0f, 0.0f, // 0
+            0.3f, 0.3f, 0.3f, // 0
+            0.6f, 0.6f, 0.6f // 0
+        };
+
         // transform intitialized to do nothing
         private Matrix4 _transform = Matrix4.Identity;
 
@@ -364,6 +378,7 @@ namespace XamOpenTkT1
         private int _vertexBufferObject;
         private int _vertexArrayObject;
         private int _elementBufferObject;
+        private int _instanceBufferObject;
 
         private TTOpenGl.Shader _shader;
 
@@ -496,6 +511,11 @@ namespace XamOpenTkT1
              GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
              GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
              GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
+        }
+
+        private void CreateTranslations()
+        {
+
         }
 
         //*********************************************************************
@@ -681,24 +701,25 @@ namespace XamOpenTkT1
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             GL.Enable(EnableCap.DepthTest);
 
+            // instance buffer
+            GL.GenBuffers(1, out _instanceBufferObject);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_instances.Length * sizeof(float)), _instances,
+                BufferUsage.StaticDraw);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
             // vertex buffer
             GL.GenBuffers(1, out _vertexBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices,
+                BufferUsage.StaticDraw);
 
             // element buffer
             GL.GenBuffers(1, out _elementBufferObject);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
-
-            // element buffer
-            //GL.GenBuffers(1, out _elementBufferObject);
-            //GL.BindBuffer(BufferTarget.CopyWriteBuffer, _elementBufferObject);
-
-            //*** Set buffer data ****
 #if WINDOWS_UWP
             GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr) (_vertices.Length * sizeof(float)), _vertices,
-                BufferUsage.StaticDraw);
             GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr) (_indices.Length * sizeof(uint)), _indices,
                 BufferUsage.StaticDraw);
 #endif
@@ -715,19 +736,28 @@ namespace XamOpenTkT1
 
             //*** position ***
             int aPositionLocation = _shader.GetAttribLocation("aPosition");
+            GL.EnableVertexAttribArray(aPositionLocation);
             // location, element count, type, normalized?, stride bytes, offset bytes
             GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(aPositionLocation);
 
             //*** color ***
             int aColorLocation = _shader.GetAttribLocation("aColor");
+            GL.EnableVertexAttribArray(aColorLocation);
             // location, element count, type, normalized?, stride bytes, offset bytes
             GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(aColorLocation);
 
             // Bind the VBO and EBO again so that the VAO will bind them as well.
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
+
+            //*** instance offset ***
+            int aOffsetLocation = _shader.GetAttribLocation("aOffset");
+            GL.EnableVertexAttribArray(aOffsetLocation);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
+            // location, element count, type, normalized?, stride bytes, offset bytes
+            GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 3 * sizeof(float));
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.VertexAttribDivisor(aOffsetLocation,1);
 
             GL.BindVertexArray(0);
 
@@ -769,7 +799,8 @@ namespace XamOpenTkT1
             GL.LineWidth((float)2.0);
             //GL.DrawArrays(BeginMode.Triangles, 0, 3); // Original
             //GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
-            GL.DrawElements(BeginMode.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
+            //GL.DrawElements(BeginMode.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // strip with indices
+            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, 3); // with indices
             //GL.DrawElements(BeginMode.Points, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
             //GL.DrawArrays(BeginMode.Points, 0, 4);
 
