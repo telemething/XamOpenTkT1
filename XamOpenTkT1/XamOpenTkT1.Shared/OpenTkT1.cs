@@ -42,6 +42,11 @@ namespace XamOpenTkT1
     public class TTOpenGLView
     {
         private OpenGLView oGLV;
+        public double WidthInPixels => _widthInPixels;
+        public double HeightInPixels => _heightInPixels;
+
+        private double _widthInPixels = 0;
+        private double _heightInPixels = 0;
 
         public OpenGLView View => oGLV;
 
@@ -53,6 +58,9 @@ namespace XamOpenTkT1
 
         public TTOpenGLView(double heightRequest, double widthRequest)
         {
+            _widthInPixels = widthRequest;
+            _heightInPixels = heightRequest;
+
             oGLV = new OpenGLView
             {
                 HasRenderLoop = true,
@@ -63,6 +71,9 @@ namespace XamOpenTkT1
 
         public TTOpenGLView(Action<Rectangle> onDisplay, double heightRequest, double widthRequest)
         {
+            _widthInPixels = widthRequest;
+            _heightInPixels = heightRequest;
+
             oGLV = new OpenGLView
             {
                 HasRenderLoop = true,
@@ -374,6 +385,13 @@ namespace XamOpenTkT1
         // transform intitialized to do nothing
         private Matrix4 _transform = Matrix4.Identity;
 
+        // camera
+        private Camera _camera;
+        private bool _firstMove = true;
+        private Vector2 _lastPos;
+
+        private double _time;
+
         // Buffer handles
         private int _vertexBufferObject;
         private int _vertexArrayObject;
@@ -530,6 +548,7 @@ namespace XamOpenTkT1
         /// GLAPI / glMapBufferRange : https://www.khronos.org/opengl/wiki/GLAPI/glMapBufferRange
         /// Buffer Object : https://www.khronos.org/opengl/wiki/Buffer_Object#Data_Specification
         /// https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_copy_buffer.txt
+        /// https://learnopengl.com/Advanced-OpenGL/Advanced-Data
         ///
         /// MapReadBit = 1,
         /// MapWriteBit = 2,
@@ -761,6 +780,10 @@ namespace XamOpenTkT1
 
             GL.BindVertexArray(0);
 
+            // We initialize the camera so that it is 3 units back from where the rectangle is
+            // and give it the proper aspect ratio
+            _camera = new Camera(Vector3.UnitZ * 3, (float)(WidthInPixels / HeightInPixels));
+
             // Mark GL as  initialized
             glInitialized = true;
         }
@@ -792,6 +815,11 @@ namespace XamOpenTkT1
 
             // Transform
             _shader.SetMatrix4("transform", _transform);
+
+            //var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
+            //_shader.SetMatrix4("model", model);
+            //_shader.SetMatrix4("view", _camera.GetViewMatrix());
+            //_shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);

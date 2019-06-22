@@ -9,6 +9,7 @@
     <Import_RootNamespace>OpenGLDemo</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Camera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ControlSurface.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)OGlUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)OpenTkT1.cs" />
