@@ -49,12 +49,63 @@ namespace XamOpenTkT1
         private double _widthInPixels = 0;
         private double _heightInPixels = 0;
 
+        TapGestureRecognizer tapGestureRecognizer = new TapGestureRecognizer();
+        PinchGestureRecognizer pinchGesture = new PinchGestureRecognizer();
+        PanGestureRecognizer panGesture = new PanGestureRecognizer();
+        SwipeGestureRecognizer leftSwipeGesture = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        SwipeGestureRecognizer rightSwipeGesture = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+
         public OpenGLView View => oGLV;
 
         public Action<Rectangle> OnDisplayHandler
         {
             set => oGLV.OnDisplay = value;
             get => oGLV.OnDisplay;
+        }
+
+        public EventHandler OnTapHandler
+        {
+            set
+            {
+                tapGestureRecognizer.Tapped += value;
+                oGLV.GestureRecognizers.Add(tapGestureRecognizer);
+            }
+        }
+
+        public EventHandler<PinchGestureUpdatedEventArgs> OnPinchHandler
+        {
+            set
+            {
+                pinchGesture.PinchUpdated += value;
+                oGLV.GestureRecognizers.Add(pinchGesture);
+            }
+        }
+
+        public EventHandler<PanUpdatedEventArgs> OnPanHandler
+        {
+            set
+            {
+                panGesture.PanUpdated += value;
+                oGLV.GestureRecognizers.Add(panGesture);
+            }
+        }
+
+        public EventHandler<SwipedEventArgs> OnLeftSwipeHandler
+        {
+            set
+            {
+                leftSwipeGesture.Swiped += value;
+                oGLV.GestureRecognizers.Add(leftSwipeGesture);
+            }
+        }
+
+        public EventHandler<SwipedEventArgs> OnRightSwipeHandler
+        {
+            set
+            {
+                rightSwipeGesture.Swiped += value;
+                oGLV.GestureRecognizers.Add(rightSwipeGesture);
+            }
         }
 
         public TTOpenGLView(double heightRequest, double widthRequest)
@@ -305,6 +356,7 @@ namespace XamOpenTkT1
             if (blue >= 1.0f)
                 blue -= 1.0f;
         }
+
     }
 
     //*************************************************************************
