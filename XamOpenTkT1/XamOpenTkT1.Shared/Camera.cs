@@ -110,12 +110,18 @@ namespace OpenGLDemo
         public Matrix4 GetViewMatrix()
         {
             return Matrix4.LookAt(Position, Position + _front, _up);
+            //return Matrix4.LookAt(Position, Position, _up);
         }
 
         // Get the projection matrix using the same method we have used up until this point
         public Matrix4 GetProjectionMatrix()
         {
-            return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+            //return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+
+            var proj = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+
+            return proj;
+
         }
 
         // This function is going to update the direction vertices using some of the math learned in the web tutorials

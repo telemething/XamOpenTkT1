@@ -18,6 +18,8 @@ void main(void)
 {
 	gl_PointSize = 0.1;
 	gl_Position = model * vec4(aPosition + aOffset, 1.0);
+	//gl_Position = model * view * vec4(aPosition + aOffset, 1.0);
+	//gl_Position = model * view * projection * vec4(aPosition + aOffset, 1.0);
 	//gl_Position = transform * vec4(aPosition + aOffset, 1.0);
 	//gl_Position = transform * vec4(aPosition, 1.0);
 	//gl_Position = vec4(aPosition, 1.0);

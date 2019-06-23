@@ -786,6 +786,7 @@ namespace XamOpenTkT1
             // We initialize the camera so that it is 3 units back from where the rectangle is
             // and give it the proper aspect ratio
             _camera = new OpenGLDemo.Camera(Vector3.UnitZ * 3, (float)(WidthInPixels / HeightInPixels));
+            //_camera = new OpenGLDemo.Camera(Vector3.UnitZ * -30, (float)(WidthInPixels / HeightInPixels));
 
             // Mark GL as  initialized
             glInitialized = true;
@@ -823,7 +824,9 @@ namespace XamOpenTkT1
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
             _shader.SetMatrix4("model", model);
             //_shader.SetMatrix4("view", _camera.GetViewMatrix());
+            //_shader.SetMatrix4("view", Matrix4.Identity);
             //_shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            //_shader.SetMatrix4("projection", Matrix4.Identity);
 
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
