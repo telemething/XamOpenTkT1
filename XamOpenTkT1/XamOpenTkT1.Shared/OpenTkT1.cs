@@ -32,6 +32,82 @@ using OpenTK.Graphics.ES30;
 
 namespace XamOpenTkT1
 {
+    public class TapViewModel : System.ComponentModel.INotifyPropertyChanged
+    {
+        System.Windows.Input.ICommand tapCommand;
+        int taps = 0;
+        string numberOfTapsTapped;
+
+        public TapViewModel()
+        {
+            // configure the TapCommand with a method
+            tapCommand = new Command(OnTapped);
+        }
+
+        /// <summary>
+        /// Expose the TapCommand via a property so that Xaml can bind to it
+        /// </summary>
+        public System.Windows.Input.ICommand TapCommand
+        {
+            get { return tapCommand; }
+        }
+
+        /// <summary>
+        /// Called whenever TapCommand is executed (because it was wired up in the constructor)
+        /// </summary>
+        void OnTapped(object s)
+        {
+            taps++;
+            Debug.WriteLine("parameter: " + s);
+            NumberOfTapsTapped = String.Format("{0} tap{1} so far!",
+                taps,
+                taps == 1 ? "" : "s");
+        }
+
+        /// <summary>
+        /// Display string that is bound to a Label on the page
+        /// </summary>
+        public string NumberOfTapsTapped
+        {
+            get { return numberOfTapsTapped; }
+            set
+            {
+                if (numberOfTapsTapped == value)
+                    return;
+                numberOfTapsTapped = value;
+                OnPropertyChanged();
+            }
+        }
+
+        #region INotifyPropertyChanged 
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            System.ComponentModel.PropertyChangedEventHandler handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     //*************************************************************************
     ///
     /// <summary>
@@ -39,7 +115,7 @@ namespace XamOpenTkT1
     /// </summary>
     ///
     /// ***********************************************************************
-    
+
     public class TTOpenGLView
     {
         private OpenGLView oGLV;
@@ -48,6 +124,11 @@ namespace XamOpenTkT1
 
         private double _widthInPixels = 0;
         private double _heightInPixels = 0;
+
+#if __IOS__
+        UITapGestureRecognizer uiTapGestureRecognizer = new UITapGestureRecognizer();
+#endif
+
 
         TapGestureRecognizer tapGestureRecognizer = new TapGestureRecognizer();
         PinchGestureRecognizer pinchGesture = new PinchGestureRecognizer();
@@ -119,9 +200,32 @@ namespace XamOpenTkT1
                 HeightRequest = heightRequest,
                 WidthRequest = widthRequest,
             };
+
+#if __IOS__
+            uiTapGestureRecognizer.AddTarget(() => uiTapGestureRecognizerAction(uiTapGestureRecognizer));
+            var pl = oGLV.On<Xamarin.Forms.PlatformConfiguration.iOS>();
+            //pl.Element.GestureRecognizers.Add(uiTapGestureRecognizer);
+#endif
+
+
+            //TapViewModel tvm = new TapViewModel();
+            //tapGestureRecognizer.Command = tvm.TapCommand;
+
+            tapGestureRecognizer.Tapped += TapGestureRecognizerOnTapped;
+            oGLV.GestureRecognizers.Add(tapGestureRecognizer);
+
         }
 
-        public TTOpenGLView(Action<Rectangle> onDisplay, double heightRequest, double widthRequest)
+
+
+#if __IOS__
+        private void uiTapGestureRecognizerAction(UITapGestureRecognizer recognizer)
+        {
+            var yy = recognizer.NumberOfTapsRequired;
+        }
+#endif
+
+        /*public TTOpenGLView(Action<Rectangle> onDisplay, double heightRequest, double widthRequest)
         {
             _widthInPixels = widthRequest;
             _heightInPixels = heightRequest;
@@ -133,6 +237,14 @@ namespace XamOpenTkT1
                 WidthRequest = widthRequest,
                 OnDisplay = onDisplay
             };
+
+            tapGestureRecognizer.Tapped += TapGestureRecognizerOnTapped;
+            oGLV.GestureRecognizers.Add(tapGestureRecognizer);
+        }*/
+
+        private void TapGestureRecognizerOnTapped(object sender, EventArgs e)
+        {
+            var tt = e.ToString();
         }
 
         public enum RenderTypeEnum
@@ -287,7 +399,7 @@ namespace XamOpenTkT1
             get => _openTkTutorialView;
         }
 
-        public OpenTkT1Page(OpenGLDemo.ControlSurface controlSurface)
+        /*public OpenTkT1Pagey(OpenGLDemo.ControlSurface controlSurface)
         {
             //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
 
@@ -300,6 +412,25 @@ namespace XamOpenTkT1
 
             var toggle = new Xamarin.Forms.Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
+
+
+            var frame = new Frame
+            {
+                OutlineColor = Color.Accent,
+                BackgroundColor = Color.Transparent,
+                Padding = new Thickness(20, 100),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.CenterAndExpand,
+                Content = new Label
+                {
+                    Text = "Tap Inside Frame",
+                    FontSize = Device.GetNamedSize(NamedSize.Large, typeof(Label))
+                }
+            };
+
+
+
+
 
             toggle.Toggled += (s, a) =>
             {
@@ -317,11 +448,103 @@ namespace XamOpenTkT1
             var stack = new StackLayout
             {
                 Padding = new Xamarin.Forms.Size(20, 20),
-                Children = { view, toggle, button }
+                Children = { view, toggle, button, frame }
             };
+
+            var tapGestureRecognizer =
+                new TapGestureRecognizer();
+            //tapGestureRecognizer.NumberOfTapsRequired = 2; // double-tap
+            tapGestureRecognizer.Tapped += OnTapGestureRecognizerTapped;
+            view.GestureRecognizers.Add(tapGestureRecognizer);
+
+
+            Content = stack;
+        }*/
+
+        public OpenTkT1Page(OpenGLDemo.ControlSurface controlSurface)
+        {
+            //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
+
+            //var openTkTutorialView = new MyOpenGLView();
+            _openTkTutorialView = new OpenTkTutorialView(controlSurface);
+
+            Title = "OpenGL";
+
+            var view = _openTkTutorialView.View;
+
+            var toggle = new Xamarin.Forms.Switch { IsToggled = true };
+            var button = new Button { Text = "Display" };
+
+
+            var frame = new Frame
+            {
+                OutlineColor = Color.Accent,
+                BackgroundColor = Color.Transparent,
+                Padding = new Thickness(20, 100),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.CenterAndExpand,
+                Content = new Label
+                {
+                    Text = "Tap Inside Frame",
+                    FontSize = Device.GetNamedSize(NamedSize.Large, typeof(Label))
+                }
+            };
+
+            var grid = new Grid();
+
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            grid.Children.Add(view, 0, 0);
+            grid.Children.Add(frame, 0, 0);
+
+            toggle.Toggled += (s, a) =>
+            {
+                if (toggle.IsToggled)
+                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.run);
+                else
+                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.stop);
+            };
+
+            button.Clicked += (s, a) =>
+            {
+                _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
+            };
+
+            var stack = new StackLayout
+            {
+                Padding = new Xamarin.Forms.Size(20, 20),
+                Children = { grid, toggle, button }
+            };
+
+            var tapGestureRecognizer =
+                new TapGestureRecognizer();
+            //tapGestureRecognizer.NumberOfTapsRequired = 2; // double-tap
+            tapGestureRecognizer.Tapped += OnTapGestureRecognizerTapped;
+            frame.GestureRecognizers.Add(tapGestureRecognizer);
+
+            PanGestureRecognizer panGesture = new PanGestureRecognizer();
+            panGesture.PanUpdated += PanGestureOnPanUpdated;
+            frame.GestureRecognizers.Add(panGesture);
 
             Content = stack;
         }
+
+        private void PanGestureOnPanUpdated(object sender, PanUpdatedEventArgs e)
+        {
+            var ff = sender.ToString();
+        }
+
+        void OnTapGestureRecognizerTapped(object sender, EventArgs args)
+        {
+
+            var ff = sender.ToString();
+            /*tapCount++;
+            label.Text = String.Format("{0} tap{1} so far!",
+                tapCount,
+                tapCount == 1 ? "" : "s");*/
+        }
+
     }
 
     //*************************************************************************
@@ -475,7 +698,89 @@ namespace XamOpenTkT1
         private void OnLoad()
         {
             base.OnDisplayHandler = OnDisplay;
+
+            //OnTapHandler = OnTap;
+            OnPinchHandler = OnPinch;
+            OnPanHandler = OnPan;
+            OnRightSwipeHandler = OnRightSwipe;
+            OnLeftSwipeHandler = OnLeftSwipe;
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnLeftSwipe(object sender, SwipedEventArgs e)
+        {
+            var d = e;
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnRightSwipe(object sender, SwipedEventArgs e)
+        {
+            var d = e;
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnPan(object sender, PanUpdatedEventArgs e)
+        {
+            var d = e;
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnPinch(object sender, PinchGestureUpdatedEventArgs e)
+        {
+            var d = e;
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnTap(object sender, EventArgs e)
+        {
+            var d = e;
+        }
+
 
         #region Shader Test Region
         private float[] ExtractRgbFromPacky(float inColor)
@@ -511,13 +816,28 @@ namespace XamOpenTkT1
         private bool haveNewTestCubeVertexData = false;
         private bool haveNewVertexData = false;
 
-        // Updating buffer data can only take place in the OpenGL thread, so is a
-        // two step process. 1) we signal the update here, 2) we execute the update
-        // by calling DoUpdateVertexData() from OnDisplay()
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// Updating buffer data can only take place in the OpenGL thread, so is a
+        /// two step process. 1) we signal the update here, 2) we execute the update
+        /// by calling DoUpdateVertexData() from OnDisplay()
+        /// </summary>
+        ///
+        //*********************************************************************
         public void SetUpdateVertexData()
         {
             haveNewTestCubeVertexData = true;
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pc"></param>
+        ///
+        //*********************************************************************
 
         public void SetUpdateVertexData(RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pc)
         {
