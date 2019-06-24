@@ -31,17 +31,6 @@
             </x:Arguments>
         </NavigationPage>
 
-        <NavigationPage Title="TapInsideFrame Test">
-            <NavigationPage.Icon>
-                <OnPlatform x:TypeArguments="FileImageSource">
-                    <On Platform="iOS" Value="tab_about.png"/>
-                </OnPlatform>
-            </NavigationPage.Icon>
-            <x:Arguments>
-                <views:TapInsideFrame />
-            </x:Arguments>
-        </NavigationPage>
-
         <NavigationPage Title="Browse">
             <NavigationPage.Icon>
                 <OnPlatform x:TypeArguments="FileImageSource">

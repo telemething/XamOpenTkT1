@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using Xamarin.Forms;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 #if __IOS__
 using UIKit;
 using OpenTK;
@@ -32,82 +33,6 @@ using OpenTK.Graphics.ES30;
 
 namespace XamOpenTkT1
 {
-    public class TapViewModel : System.ComponentModel.INotifyPropertyChanged
-    {
-        System.Windows.Input.ICommand tapCommand;
-        int taps = 0;
-        string numberOfTapsTapped;
-
-        public TapViewModel()
-        {
-            // configure the TapCommand with a method
-            tapCommand = new Command(OnTapped);
-        }
-
-        /// <summary>
-        /// Expose the TapCommand via a property so that Xaml can bind to it
-        /// </summary>
-        public System.Windows.Input.ICommand TapCommand
-        {
-            get { return tapCommand; }
-        }
-
-        /// <summary>
-        /// Called whenever TapCommand is executed (because it was wired up in the constructor)
-        /// </summary>
-        void OnTapped(object s)
-        {
-            taps++;
-            Debug.WriteLine("parameter: " + s);
-            NumberOfTapsTapped = String.Format("{0} tap{1} so far!",
-                taps,
-                taps == 1 ? "" : "s");
-        }
-
-        /// <summary>
-        /// Display string that is bound to a Label on the page
-        /// </summary>
-        public string NumberOfTapsTapped
-        {
-            get { return numberOfTapsTapped; }
-            set
-            {
-                if (numberOfTapsTapped == value)
-                    return;
-                numberOfTapsTapped = value;
-                OnPropertyChanged();
-            }
-        }
-
-        #region INotifyPropertyChanged 
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            System.ComponentModel.PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     //*************************************************************************
     ///
     /// <summary>
@@ -118,38 +43,39 @@ namespace XamOpenTkT1
 
     public class TTOpenGLView
     {
-        private OpenGLView oGLV;
+        private readonly double _widthInPixels = 0;
+        private readonly double _heightInPixels = 0;
+        private readonly OpenGLView _oGlv;
+        private readonly Frame _gestureOverlayFrame;
+
+        private readonly TapGestureRecognizer _tapGestureRecognizer = 
+            new TapGestureRecognizer();
+        private readonly PinchGestureRecognizer _pinchGesture = 
+            new PinchGestureRecognizer();
+        private readonly PanGestureRecognizer _panGesture = 
+            new PanGestureRecognizer();
+        private readonly SwipeGestureRecognizer _leftSwipeGesture = 
+            new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        private readonly SwipeGestureRecognizer _rightSwipeGesture = 
+            new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+
         public double WidthInPixels => _widthInPixels;
         public double HeightInPixels => _heightInPixels;
 
-        private double _widthInPixels = 0;
-        private double _heightInPixels = 0;
-
-#if __IOS__
-        UITapGestureRecognizer uiTapGestureRecognizer = new UITapGestureRecognizer();
-#endif
-
-
-        TapGestureRecognizer tapGestureRecognizer = new TapGestureRecognizer();
-        PinchGestureRecognizer pinchGesture = new PinchGestureRecognizer();
-        PanGestureRecognizer panGesture = new PanGestureRecognizer();
-        SwipeGestureRecognizer leftSwipeGesture = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        SwipeGestureRecognizer rightSwipeGesture = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-
-        public OpenGLView View => oGLV;
+        public OpenGLView View => _oGlv;
 
         public Action<Rectangle> OnDisplayHandler
         {
-            set => oGLV.OnDisplay = value;
-            get => oGLV.OnDisplay;
+            set => _oGlv.OnDisplay = value;
+            get => _oGlv.OnDisplay;
         }
 
         public EventHandler OnTapHandler
         {
             set
             {
-                tapGestureRecognizer.Tapped += value;
-                oGLV.GestureRecognizers.Add(tapGestureRecognizer);
+                _tapGestureRecognizer.Tapped += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_tapGestureRecognizer);
             }
         }
 
@@ -157,8 +83,8 @@ namespace XamOpenTkT1
         {
             set
             {
-                pinchGesture.PinchUpdated += value;
-                oGLV.GestureRecognizers.Add(pinchGesture);
+                _pinchGesture.PinchUpdated += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_pinchGesture);
             }
         }
 
@@ -166,8 +92,8 @@ namespace XamOpenTkT1
         {
             set
             {
-                panGesture.PanUpdated += value;
-                oGLV.GestureRecognizers.Add(panGesture);
+                _panGesture.PanUpdated += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_panGesture);
             }
         }
 
@@ -175,8 +101,8 @@ namespace XamOpenTkT1
         {
             set
             {
-                leftSwipeGesture.Swiped += value;
-                oGLV.GestureRecognizers.Add(leftSwipeGesture);
+                _leftSwipeGesture.Swiped += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_leftSwipeGesture);
             }
         }
 
@@ -184,68 +110,43 @@ namespace XamOpenTkT1
         {
             set
             {
-                rightSwipeGesture.Swiped += value;
-                oGLV.GestureRecognizers.Add(rightSwipeGesture);
+                _rightSwipeGesture.Swiped += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_rightSwipeGesture);
             }
         }
 
-        public TTOpenGLView(double heightRequest, double widthRequest)
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="heightRequest"></param>
+        /// <param name="widthRequest"></param>
+        /// <param name="gestureOverlayFrame"></param>
+        ///
+        //*********************************************************************
+
+        public TTOpenGLView(double heightRequest, double widthRequest, Frame gestureOverlayFrame)
         {
             _widthInPixels = widthRequest;
             _heightInPixels = heightRequest;
+            _gestureOverlayFrame = gestureOverlayFrame;
 
-            oGLV = new OpenGLView
+            _oGlv = new OpenGLView
             {
                 HasRenderLoop = true,
                 HeightRequest = heightRequest,
                 WidthRequest = widthRequest,
             };
-
-#if __IOS__
-            uiTapGestureRecognizer.AddTarget(() => uiTapGestureRecognizerAction(uiTapGestureRecognizer));
-            var pl = oGLV.On<Xamarin.Forms.PlatformConfiguration.iOS>();
-            //pl.Element.GestureRecognizers.Add(uiTapGestureRecognizer);
-#endif
-
-
-            //TapViewModel tvm = new TapViewModel();
-            //tapGestureRecognizer.Command = tvm.TapCommand;
-
-            tapGestureRecognizer.Tapped += TapGestureRecognizerOnTapped;
-            oGLV.GestureRecognizers.Add(tapGestureRecognizer);
-
         }
 
-
-
-#if __IOS__
-        private void uiTapGestureRecognizerAction(UITapGestureRecognizer recognizer)
-        {
-            var yy = recognizer.NumberOfTapsRequired;
-        }
-#endif
-
-        /*public TTOpenGLView(Action<Rectangle> onDisplay, double heightRequest, double widthRequest)
-        {
-            _widthInPixels = widthRequest;
-            _heightInPixels = heightRequest;
-
-            oGLV = new OpenGLView
-            {
-                HasRenderLoop = true,
-                HeightRequest = heightRequest,
-                WidthRequest = widthRequest,
-                OnDisplay = onDisplay
-            };
-
-            tapGestureRecognizer.Tapped += TapGestureRecognizerOnTapped;
-            oGLV.GestureRecognizers.Add(tapGestureRecognizer);
-        }*/
-
-        private void TapGestureRecognizerOnTapped(object sender, EventArgs e)
-        {
-            var tt = e.ToString();
-        }
+        //*********************************************************************
+        //
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
 
         public enum RenderTypeEnum
         {
@@ -254,18 +155,27 @@ namespace XamOpenTkT1
             single
         };
 
+        //*********************************************************************
+        //
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="renderType"></param>
+        ///
+        //*********************************************************************
+
         public void Render(RenderTypeEnum renderType)
         {
             switch (renderType)
             {
                 case RenderTypeEnum.run:
-                    oGLV.HasRenderLoop = true;
+                    _oGlv.HasRenderLoop = true;
                     break;
                 case RenderTypeEnum.stop:
-                    oGLV.HasRenderLoop = false;
+                    _oGlv.HasRenderLoop = false;
                     break;
                 case RenderTypeEnum.single:
-                    oGLV.Display();
+                    _oGlv.Display();
                     break;
             }
         }
@@ -380,7 +290,6 @@ namespace XamOpenTkT1
                     op.Children[index] = openTkT1Page;
             }
         }
-
     }
 
     //*************************************************************************
@@ -394,109 +303,55 @@ namespace XamOpenTkT1
     class OpenTkT1Page : ContentPage
     {
         private OpenTkTutorialView _openTkTutorialView;
+        private Frame _gestureOverlayFrame;
+
         public OpenTkTutorialView openTkTutorialView
         {
             get => _openTkTutorialView;
         }
 
-        /*public OpenTkT1Pagey(OpenGLDemo.ControlSurface controlSurface)
-        {
-            //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
-
-            //var openTkTutorialView = new MyOpenGLView();
-            _openTkTutorialView = new OpenTkTutorialView(controlSurface);
-
-            Title = "OpenGL";
-
-            var view = _openTkTutorialView.View;
-
-            var toggle = new Xamarin.Forms.Switch { IsToggled = true };
-            var button = new Button { Text = "Display" };
-
-
-            var frame = new Frame
-            {
-                OutlineColor = Color.Accent,
-                BackgroundColor = Color.Transparent,
-                Padding = new Thickness(20, 100),
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.CenterAndExpand,
-                Content = new Label
-                {
-                    Text = "Tap Inside Frame",
-                    FontSize = Device.GetNamedSize(NamedSize.Large, typeof(Label))
-                }
-            };
-
-
-
-
-
-            toggle.Toggled += (s, a) =>
-            {
-                if (toggle.IsToggled)
-                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.run);
-                else
-                    _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.stop);
-            };
-
-            button.Clicked += (s, a) =>
-            {
-                _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
-            };
-
-            var stack = new StackLayout
-            {
-                Padding = new Xamarin.Forms.Size(20, 20),
-                Children = { view, toggle, button, frame }
-            };
-
-            var tapGestureRecognizer =
-                new TapGestureRecognizer();
-            //tapGestureRecognizer.NumberOfTapsRequired = 2; // double-tap
-            tapGestureRecognizer.Tapped += OnTapGestureRecognizerTapped;
-            view.GestureRecognizers.Add(tapGestureRecognizer);
-
-
-            Content = stack;
-        }*/
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="controlSurface"></param>
+        ///
+        //*********************************************************************
 
         public OpenTkT1Page(OpenGLDemo.ControlSurface controlSurface)
         {
-            //var openTkTutorialView = new TTOpenGLView(OnDisplay, 300, 300);
-
-            //var openTkTutorialView = new MyOpenGLView();
-            _openTkTutorialView = new OpenTkTutorialView(controlSurface);
-
             Title = "OpenGL";
 
-            var view = _openTkTutorialView.View;
-
-            var toggle = new Xamarin.Forms.Switch { IsToggled = true };
-            var button = new Button { Text = "Display" };
-
-
-            var frame = new Frame
+            // This frame overlays the openGlView object, it receives gesture
+            // events from the user. We need to do it this way because the
+            // iOS OpenGlView does not forward any user input.
+            _gestureOverlayFrame = new Frame
             {
-                OutlineColor = Color.Accent,
-                BackgroundColor = Color.Transparent,
-                Padding = new Thickness(20, 100),
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.CenterAndExpand,
-                Content = new Label
-                {
-                    Text = "Tap Inside Frame",
-                    FontSize = Device.GetNamedSize(NamedSize.Large, typeof(Label))
-                }
+                BorderColor = Xamarin.Forms.Color.Accent,
+                BackgroundColor = Xamarin.Forms.Color.Transparent,
+                Padding = new Thickness(5, 5),
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                VerticalOptions = LayoutOptions.FillAndExpand,
             };
 
+            // create the openGlView
+            _openTkTutorialView = new OpenTkTutorialView(controlSurface, _gestureOverlayFrame);
+            var openGlView = _openTkTutorialView.View;
+            //_openTkTutorialView.gestureOverlayFrame = _gestureOverlayFrame;
+
+            // We use the grid to overlay the frame and openGlView
             var grid = new Grid();
 
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            grid.Children.Add(view, 0, 0);
-            grid.Children.Add(frame, 0, 0);
+            grid.Children.Add(openGlView, 0, 0);
+            grid.Children.Add(_gestureOverlayFrame, 0, 0);
+
+            // switch and button
+            var toggle = new Xamarin.Forms.Switch { IsToggled = true };
+            var button = new Button { Text = "Display" };
 
             toggle.Toggled += (s, a) =>
             {
@@ -511,40 +366,15 @@ namespace XamOpenTkT1
                 _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
             };
 
+            // create the stack
             var stack = new StackLayout
             {
                 Padding = new Xamarin.Forms.Size(20, 20),
                 Children = { grid, toggle, button }
             };
 
-            var tapGestureRecognizer =
-                new TapGestureRecognizer();
-            //tapGestureRecognizer.NumberOfTapsRequired = 2; // double-tap
-            tapGestureRecognizer.Tapped += OnTapGestureRecognizerTapped;
-            frame.GestureRecognizers.Add(tapGestureRecognizer);
-
-            PanGestureRecognizer panGesture = new PanGestureRecognizer();
-            panGesture.PanUpdated += PanGestureOnPanUpdated;
-            frame.GestureRecognizers.Add(panGesture);
-
             Content = stack;
         }
-
-        private void PanGestureOnPanUpdated(object sender, PanUpdatedEventArgs e)
-        {
-            var ff = sender.ToString();
-        }
-
-        void OnTapGestureRecognizerTapped(object sender, EventArgs args)
-        {
-
-            var ff = sender.ToString();
-            /*tapCount++;
-            label.Text = String.Format("{0} tap{1} so far!",
-                tapCount,
-                tapCount == 1 ? "" : "s");*/
-        }
-
     }
 
     //*************************************************************************
@@ -559,7 +389,7 @@ namespace XamOpenTkT1
     {
         float red, green, blue;
 
-        public MyOpenGLView() : base(300, 300)
+        public MyOpenGLView() : base(300, 300, null)
         {
             base.OnDisplayHandler = OnDisplay;
         }
@@ -680,7 +510,18 @@ namespace XamOpenTkT1
         private bool glInitialized = false;
         private bool shadersBuilt = false;
 
-        public OpenTkTutorialView(OpenGLDemo.ControlSurface cs) : base(300, 300)
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cs"></param>
+        /// <param name="gestureOverlayFrame"></param>
+        ///
+        //*********************************************************************
+
+        public OpenTkTutorialView(OpenGLDemo.ControlSurface cs, Frame gestureOverlayFrame) : 
+            base(300, 300, gestureOverlayFrame)
         {
             _stopwatch.Start();
             controlSurface = cs;
@@ -699,7 +540,7 @@ namespace XamOpenTkT1
         {
             base.OnDisplayHandler = OnDisplay;
 
-            //OnTapHandler = OnTap;
+            OnTapHandler = OnTap;
             OnPinchHandler = OnPinch;
             OnPanHandler = OnPan;
             OnRightSwipeHandler = OnRightSwipe;
