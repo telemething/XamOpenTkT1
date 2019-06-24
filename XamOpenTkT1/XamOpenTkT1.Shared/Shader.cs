@@ -275,7 +275,7 @@ namespace TTOpenGl
             var gg = _uniformLocations[name];
 
             GL.UniformMatrix4(_uniformLocations[name], false, ref data);
-            var ec = GL.GetErrorCode();
+            OGlUtil.CheckOGLError();
         }
 
         /// <summary>

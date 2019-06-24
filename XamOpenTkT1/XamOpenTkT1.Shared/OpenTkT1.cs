@@ -17,6 +17,7 @@ using OpenTK.Graphics.ES30;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
+using OpenTK;
 #elif __ANDROID__
 using Android.Icu.Text;
 using Android.Animation;
@@ -780,7 +781,7 @@ namespace XamOpenTkT1
             //IntPtr bufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
             //IntPtr elementPointer = GL.MapBufferRange(BufferTarget.ElementArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
 
-            OGlUtil.ClearOGLErrors();
+            TTOpenGl.OGlUtil.ClearOGLErrors();
 
             float[] testData1 =
             {
@@ -804,23 +805,23 @@ namespace XamOpenTkT1
             // ReadBuffer
             GL.GenBuffers(1, out _copyReadBuffer);
 
-            OGlUtil.CheckOGLError();
+            TTOpenGl.OGlUtil.CheckOGLError();
 
             GL.BindBuffer(BufferTarget.CopyReadBuffer, _copyReadBuffer);
 
-            OGlUtil.CheckOGLError();
+            TTOpenGl.OGlUtil.CheckOGLError();
 
 #if WINDOWS_UWP
             GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)32,  (IntPtr)null, BufferUsageHint.StaticDraw);
 #else
             GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)(testData1.Length * sizeof(float)), testData1, BufferUsage.StaticDraw);
 #endif
-            OGlUtil.CheckOGLError();
+            TTOpenGl.OGlUtil.CheckOGLError();
 
             controlSurface.CopyReadBufferPointer = GL.MapBufferRange(BufferTarget.CopyReadBuffer,
                 IntPtr.Zero, (IntPtr)(testData1.Length * sizeof(float)), BufferAccessMask.MapUnsynchronizedBit);
 
-            OGlUtil.CheckOGLError();
+            TTOpenGl.OGlUtil.CheckOGLError();
 
             //WriteBuffer
             GL.GenBuffers(1, out _copyWriteBuffer);
@@ -849,10 +850,10 @@ namespace XamOpenTkT1
             //GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero, (IntPtr) (_vertices.Length * sizeof(float)),
             //    BufferAccessMask.MapWriteBit);
 
-            OGlUtil.ClearOGLErrors();
+            TTOpenGl.OGlUtil.ClearOGLErrors();
             controlSurface.ArrayBufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, 
                 IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
-            OGlUtil.CheckOGLError();
+            TTOpenGl.OGlUtil.CheckOGLError();
         }
 
         //*********************************************************************
@@ -888,14 +889,22 @@ namespace XamOpenTkT1
         {
             //var transform = Matrix4.Identity;
 
-            var ec = GL.GetErrorCode();
+            TTOpenGl.OGlUtil.ClearOGLErrors();
 
             var rotation1 = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20.0f));
             var rotation2 = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(20.0f));
             var rotation = rotation1 * rotation2;
+
+#if WINDOWS_UWP
+            var scale = Matrix4.CreateScale(0.5f, 0.5f, 0.5f);
+#else
             var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
+#endif
+
             var translation = Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f);
             Matrix4 transform = rotation * scale * translation;
+
+            TTOpenGl.OGlUtil.CheckOGLError();
 
             return transform;
         }
@@ -939,24 +948,28 @@ namespace XamOpenTkT1
             // instance buffer
             GL.GenBuffers(1, out _instanceBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_instances.Length * sizeof(float)), _instances,
-                BufferUsage.StaticDraw);
+#if WINDOWS_UWP
+            GL.BufferData(BufferTarget.ArrayBuffer, _instances.Length * sizeof(float), _instances, BufferUsageHint.StaticDraw);
+#else
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_instances.Length * sizeof(float)), _instances, BufferUsage.StaticDraw);
+#endif
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
             // vertex buffer
             GL.GenBuffers(1, out _vertexBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices,
-                BufferUsage.StaticDraw);
-
+#if WINDOWS_UWP
+            GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+#else
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
+#endif
             // element buffer
             GL.GenBuffers(1, out _elementBufferObject);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
 #if WINDOWS_UWP
-            GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+            GL.BufferData( BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(float), _indices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr) (_indices.Length * sizeof(uint)), _indices,
-                BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr) (_indices.Length * sizeof(uint)), _indices, BufferUsage.StaticDraw);
 #endif
 
             // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
@@ -1053,7 +1066,7 @@ namespace XamOpenTkT1
             //GL.DrawArrays(BeginMode.Points, 0, 4);
 
             //GL.DrawElementsInstanced();
-#endif      
+#endif
         }
     }
 

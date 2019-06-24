@@ -28,7 +28,7 @@ using Android;
 using OpenTK.Graphics.ES30;
 #endif
 
-namespace OpenGLDemo
+namespace TTOpenGl
 {
     class OGlUtil
     {
