@@ -49,16 +49,20 @@ namespace XamOpenTkT1
         private readonly OpenGLView _oGlv;
         private readonly Frame _gestureOverlayFrame;
 
+        private double _scale;
+
         private readonly TapGestureRecognizer _tapGestureRecognizer = 
             new TapGestureRecognizer();
         private readonly PinchGestureRecognizer _pinchGesture = 
             new PinchGestureRecognizer();
         private readonly PanGestureRecognizer _panGesture = 
             new PanGestureRecognizer();
-        private readonly SwipeGestureRecognizer _leftSwipeGesture = 
-            new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        private readonly SwipeGestureRecognizer _rightSwipeGesture = 
-            new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        private readonly SwipeGestureRecognizer _swipeGesture =
+            new SwipeGestureRecognizer();
+
+        public delegate void ScaleRequestHandlerDelegate(double scale);
+
+        private ScaleRequestHandlerDelegate _scaleRequestHandler;
 
         public double WidthInPixels => _widthInPixels;
         public double HeightInPixels => _heightInPixels;
@@ -70,6 +74,32 @@ namespace XamOpenTkT1
             set => _oGlv.OnDisplay = value;
             get => _oGlv.OnDisplay;
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// Control setters
+        /// </summary>
+        ///
+        //*********************************************************************
+
+        public double Scale
+        {
+            set { _scale = value; _scaleRequestHandler?.Invoke(value);  }
+        }
+
+        public ScaleRequestHandlerDelegate OnScaleRequest
+        {
+            set => _scaleRequestHandler  = value;
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// Gesture handler setters
+        /// </summary>
+        ///
+        //*********************************************************************
 
         public EventHandler OnTapHandler
         {
@@ -98,28 +128,19 @@ namespace XamOpenTkT1
             }
         }
 
-        public EventHandler<SwipedEventArgs> OnLeftSwipeHandler
+        public EventHandler<SwipedEventArgs> OnSwipeHandler
         {
             set
             {
-                _leftSwipeGesture.Swiped += value;
-                _gestureOverlayFrame.GestureRecognizers.Add(_leftSwipeGesture);
-            }
-        }
-
-        public EventHandler<SwipedEventArgs> OnRightSwipeHandler
-        {
-            set
-            {
-                _rightSwipeGesture.Swiped += value;
-                _gestureOverlayFrame.GestureRecognizers.Add(_rightSwipeGesture);
+                _swipeGesture.Swiped += value;
+                _gestureOverlayFrame.GestureRecognizers.Add(_swipeGesture);
             }
         }
 
         //*********************************************************************
         ///
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
         /// <param name="heightRequest"></param>
         /// <param name="widthRequest"></param>
@@ -127,11 +148,13 @@ namespace XamOpenTkT1
         ///
         //*********************************************************************
 
-        public TTOpenGLView(double heightRequest, double widthRequest, Frame gestureOverlayFrame)
+        public TTOpenGLView(double heightRequest, double widthRequest, 
+            Frame gestureOverlayFrame)
         {
             _widthInPixels = widthRequest;
             _heightInPixels = heightRequest;
             _gestureOverlayFrame = gestureOverlayFrame;
+
 
             _oGlv = new OpenGLView
             {
@@ -353,6 +376,7 @@ namespace XamOpenTkT1
             // switch and button
             var toggle = new Xamarin.Forms.Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
+            var zoomSlider = new Slider();
 
             toggle.Toggled += (s, a) =>
             {
@@ -367,11 +391,16 @@ namespace XamOpenTkT1
                 _openTkTutorialView.Render(TTOpenGLView.RenderTypeEnum.single);
             };
 
+            zoomSlider.ValueChanged += (sender, args) =>
+            {
+                _openTkTutorialView.Scale = args.NewValue;
+            };
+
             // create the stack
             var stack = new StackLayout
             {
                 Padding = new Xamarin.Forms.Size(20, 20),
-                Children = { grid, toggle, button }
+                Children = { grid, toggle, button, zoomSlider }
             };
 
             Content = stack;
@@ -511,6 +540,8 @@ namespace XamOpenTkT1
         private bool glInitialized = false;
         private bool shadersBuilt = false;
 
+        private double _scale = 0.5;
+
         //*********************************************************************
         ///
         /// <summary>
@@ -544,8 +575,9 @@ namespace XamOpenTkT1
             OnTapHandler = OnTap;
             OnPinchHandler = OnPinch;
             OnPanHandler = OnPan;
-            OnRightSwipeHandler = OnRightSwipe;
-            OnLeftSwipeHandler = OnLeftSwipe;
+            OnSwipeHandler = OnSwipe;
+
+            OnScaleRequest = OnScaleRequestHandler;
         }
 
         //*********************************************************************
@@ -553,35 +585,38 @@ namespace XamOpenTkT1
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        /// <param name="scale"></param>
         ///
         //*********************************************************************
 
-        private void OnLeftSwipe(object sender, SwipedEventArgs e)
+        private void OnScaleRequestHandler(double scale)
         {
-            var d = e;
+            System.Diagnostics.Debug.WriteLine($"> OnScaleRequest({scale})");
+
+            _scale = scale + 0.5;
+
+            _transform = BuildTransform();
         }
 
         //*********************************************************************
         ///
         /// <summary>
-        /// 
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         ///
         //*********************************************************************
 
-        private void OnRightSwipe(object sender, SwipedEventArgs e)
+        private void OnSwipe(object sender, SwipedEventArgs e)
         {
-            var d = e;
+            System.Diagnostics.Debug.WriteLine($"> OnSwipe({e.Direction})");
         }
 
         //*********************************************************************
         ///
         /// <summary>
-        /// 
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -590,13 +625,20 @@ namespace XamOpenTkT1
 
         private void OnPan(object sender, PanUpdatedEventArgs e)
         {
-            var d = e;
+            switch (e.StatusType)
+            {
+                case GestureStatus.Started:
+                    break;
+            }
+
+            System.Diagnostics.Debug.WriteLine(
+                $"> OnPan({e.StatusType.ToString()}, x:{e.TotalX}, y:{e.TotalY})");
         }
 
         //*********************************************************************
         ///
         /// <summary>
-        /// 
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -605,13 +647,14 @@ namespace XamOpenTkT1
 
         private void OnPinch(object sender, PinchGestureUpdatedEventArgs e)
         {
-            var d = e;
+            System.Diagnostics.Debug.WriteLine(
+                $"> OnPinch({e.Status.ToString()}, x:{e.ScaleOrigin.X}, y:{e.ScaleOrigin.Y}, scale:{e.Scale})");
         }
 
         //*********************************************************************
         ///
         /// <summary>
-        /// 
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -620,7 +663,7 @@ namespace XamOpenTkT1
 
         private void OnTap(object sender, EventArgs e)
         {
-            var d = e;
+            System.Diagnostics.Debug.WriteLine("> OnTap()");
         }
 
 
@@ -898,7 +941,8 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             var scale = Matrix4.CreateScale(0.5f, 0.5f, 0.5f);
 #else
-            var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
+            //var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
+            var scale = Matrix4.Scale((float)_scale, (float)_scale, (float)_scale);
 #endif
 
             var translation = Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f);
@@ -1044,11 +1088,11 @@ namespace XamOpenTkT1
             GL.BindVertexArray(_vertexArrayObject);
 
             // Transform
-            //_shader.SetMatrix4("transform", _transform);
+            _shader.SetMatrix4("transform", _transform);
 
             _time = _stopwatch.ElapsedMilliseconds / 40;
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
-            _shader.SetMatrix4("model", model);
+            //_shader.SetMatrix4("model", model);
             //_shader.SetMatrix4("view", _camera.GetViewMatrix());
             //_shader.SetMatrix4("view", Matrix4.Identity);
             //_shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
