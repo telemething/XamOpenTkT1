@@ -56,6 +56,7 @@ namespace OpenGLDemo
         {
             Position = position;
             AspectRatio = aspectRatio;
+            UpdateVectors();
         }
 
         // The position of the camera
@@ -109,19 +110,15 @@ namespace OpenGLDemo
         // Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
         public Matrix4 GetViewMatrix()
         {
-            return Matrix4.LookAt(Position, Position + _front, _up);
-            //return Matrix4.LookAt(Position, Position, _up);
+            //return Matrix4.LookAt(Position, Position + _front, _up);
+            return Matrix4.LookAt(Position, new Vector3(0,0,0), _up);
         }
 
         // Get the projection matrix using the same method we have used up until this point
         public Matrix4 GetProjectionMatrix()
         {
-            //return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
-
-            var proj = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
-
-            return proj;
-
+            return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+            //return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45), AspectRatio, 0.01f, 100f);
         }
 
         // This function is going to update the direction vertices using some of the math learned in the web tutorials
@@ -150,3 +147,5 @@ namespace OpenGLDemo
 }
 
 #endif //!___XAM_FORMS___
+
+

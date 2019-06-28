@@ -50,6 +50,8 @@ namespace XamOpenTkT1
         private readonly Frame _gestureOverlayFrame;
 
         private double _scale;
+        public Vector3 _position = new Vector3(0.0f, 0.0f, 0.8f);
+        public Matrix4 _model;
 
         private readonly TapGestureRecognizer _tapGestureRecognizer = 
             new TapGestureRecognizer();
@@ -69,7 +71,7 @@ namespace XamOpenTkT1
 
         public OpenGLView View => _oGlv;
 
-        public Action<Rectangle> OnDisplayHandler
+        public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
         {
             set => _oGlv.OnDisplay = value;
             get => _oGlv.OnDisplay;
@@ -154,7 +156,6 @@ namespace XamOpenTkT1
             _widthInPixels = widthRequest;
             _heightInPixels = heightRequest;
             _gestureOverlayFrame = gestureOverlayFrame;
-
 
             _oGlv = new OpenGLView
             {
@@ -424,7 +425,7 @@ namespace XamOpenTkT1
             base.OnDisplayHandler = OnDisplay;
         }
 
-        private void OnDisplay(Rectangle obj)
+        private void OnDisplay(Xamarin.Forms.Rectangle obj)
         {
             GL.ClearColor(red, green, blue, 1.0f);
             GL.Clear((ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
@@ -510,13 +511,18 @@ namespace XamOpenTkT1
             -0.3f, -0.3f, -0.3f, colorRed,// 0
             0.0f, 0.0f, 0.0f, colorGreen,// 0
             0.3f, 0.3f, 0.3f, colorBlue // 0
-        };*/
+        };
 
         private float[] _instances =
         {
             0.0f, 0.0f, 0.0f, // 0
             0.3f, 0.3f, 0.3f, // 0
             0.6f, 0.6f, 0.6f // 0
+        };*/
+
+        private float[] _instances =
+        {
+            0.0f, 0.0f, 0.0f // 0
         };
 
         // transform intitialized to do nothing
@@ -595,7 +601,7 @@ namespace XamOpenTkT1
 
             _scale = scale + 0.5;
 
-            _transform = BuildTransform();
+            //_transform = BuildTransform();
         }
 
         //*********************************************************************
@@ -928,7 +934,7 @@ namespace XamOpenTkT1
         ///
         //*********************************************************************
 
-        private Matrix4 BuildTransform()
+        private Matrix4 BuildTransformy()
         {
             //var transform = Matrix4.Identity;
 
@@ -953,6 +959,22 @@ namespace XamOpenTkT1
             return transform;
         }
 
+        private void SetupProjection()
+        {
+            TTOpenGl.OGlUtil.ClearOGLErrors();
+
+            float aspect = (float)(WidthInPixels / HeightInPixels);
+            if (aspect > 1)
+            {
+#if WINDOWS_UWP
+                Matrix4 scale = Matrix4.CreateScale(aspect);
+#else
+                Matrix4 scale = Matrix4.Scale(aspect);
+#endif
+                base._model = Matrix4.Mult(base._model, scale);
+            }
+        }
+
         ///*********************************************************************
         ///
         /// <summary>
@@ -970,7 +992,8 @@ namespace XamOpenTkT1
             if (!shadersBuilt)
             {
                 BuildShaders();
-                _transform = BuildTransform();
+                SetupProjection();
+                //_transform = BuildTransform();
                 //MapCopyBuffers();
             }
 
@@ -1043,19 +1066,19 @@ namespace XamOpenTkT1
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
 
             //*** instance offset ***
-            int aOffsetLocation = _shader.GetAttribLocation("aOffset");
+            /*int aOffsetLocation = _shader.GetAttribLocation("aOffset");
             GL.EnableVertexAttribArray(aOffsetLocation);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
             // location, element count, type, normalized?, stride bytes, offset bytes
             GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 3 * sizeof(float));
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.VertexAttribDivisor(aOffsetLocation,1);
+            GL.VertexAttribDivisor(aOffsetLocation,1);*/
 
             GL.BindVertexArray(0);
 
             // We initialize the camera so that it is 3 units back from where the rectangle is
             // and give it the proper aspect ratio
-            _camera = new OpenGLDemo.Camera(Vector3.UnitZ * 3, (float)(WidthInPixels / HeightInPixels));
+            _camera = new OpenGLDemo.Camera(Vector3.UnitZ * (float)-1.0, (float)(WidthInPixels / HeightInPixels));
             //_camera = new OpenGLDemo.Camera(Vector3.UnitZ * -30, (float)(WidthInPixels / HeightInPixels));
 
             // Mark GL as  initialized
@@ -1071,7 +1094,7 @@ namespace XamOpenTkT1
         //*
         //*********************************************************************
 
-        private void OnDisplay(Rectangle obj)
+        private void OnDisplay(Xamarin.Forms.Rectangle obj)
         {
             // GL Initialization must occur on this thread. Make sure it is called only once
             if (!glInitialized)
@@ -1088,15 +1111,13 @@ namespace XamOpenTkT1
             GL.BindVertexArray(_vertexArrayObject);
 
             // Transform
-            _shader.SetMatrix4("transform", _transform);
+            //_shader.SetMatrix4("transform", _transform);
 
             _time = _stopwatch.ElapsedMilliseconds / 40;
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
-            //_shader.SetMatrix4("model", model);
-            //_shader.SetMatrix4("view", _camera.GetViewMatrix());
-            //_shader.SetMatrix4("view", Matrix4.Identity);
-            //_shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
-            //_shader.SetMatrix4("projection", Matrix4.Identity);
+            _shader.SetMatrix4("model", model);
+            _shader.SetMatrix4("view", _camera.GetViewMatrix());
+            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
@@ -1105,7 +1126,7 @@ namespace XamOpenTkT1
             //GL.DrawArrays(BeginMode.Triangles, 0, 3); // Original
             //GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
             //GL.DrawElements(BeginMode.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // strip with indices
-            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, 3); // with indices
+            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, 1); // with indices
             //GL.DrawElements(BeginMode.Points, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
             //GL.DrawArrays(BeginMode.Points, 0, 4);
 

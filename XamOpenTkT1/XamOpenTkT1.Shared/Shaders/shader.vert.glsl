@@ -2,10 +2,10 @@
 attribute vec3 aOffset;
 attribute float aColor;
 varying vec3 ourColor;
-//uniform mat4 model;
-//uniform mat4 view;
-//uniform mat4 projection;
-uniform mat4 transform;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+//uniform mat4 transform;
 vec3 unpackColor(float f)
 {
 	vec3 color;
@@ -16,8 +16,13 @@ vec3 unpackColor(float f)
 }
 void main(void)
 {
-	gl_PointSize = 0.1;
-	gl_Position = transform * vec4(aPosition + aOffset, 1.0);
+	//gl_PointSize = 0.1;
+	gl_Position = vec4(aPosition, 1.0) * model * projection * view;
+	//gl_Position = vec4(aPosition, 1.0) * model;
+	//gl_Position = vec4(aPosition, 1.0) * model * view;
+	//gl_Position = vec4(aPosition, 1.0) * view;
+	//gl_Position = vec4(aPosition + aOffset, 1.0) * view * projection;
+	//gl_Position = transform * vec4(aPosition + aOffset, 1.0);
 	//gl_Position = model * vec4(aPosition + aOffset, 1.0);
 	//gl_Position = model * view * vec4(aPosition + aOffset, 1.0);
 	//gl_Position = model * view * projection * vec4(aPosition + aOffset, 1.0);
