@@ -141,7 +141,7 @@ namespace SampleApp
                 lock (mRenderSurfaceCriticalSection)
                 {
                     mOpenGLES.MakeCurrent(mRenderSurface);
-                    SimpleRenderer renderer = new SimpleRenderer();
+                    SimpleRenderer2 renderer = new SimpleRenderer2();
 
                     while (action.Status == Windows.Foundation.AsyncStatus.Started)
                     {

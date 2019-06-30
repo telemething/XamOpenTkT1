@@ -41,7 +41,10 @@ namespace OpenGLDemo
     public class Camera
     {
         // Those vectors are directions pointing outwards from the camera to define how it rotated
+
+        // Originally -, but it seems it must be + on Xamarin
         private Vector3 _front = -Vector3.UnitZ;
+        //private Vector3 _front = Vector3.UnitZ; 
         private Vector3 _up = Vector3.UnitY;
         private Vector3 _right = Vector3.UnitX;
 
@@ -107,11 +110,15 @@ namespace OpenGLDemo
             }
         }
 
+        Vector3 movey = new Vector3(0,(float)1,0);
+
         // Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
         public Matrix4 GetViewMatrix()
         {
+            // Originally -, but it seems it must be + on Xamarin
             //return Matrix4.LookAt(Position, Position + _front, _up);
-            return Matrix4.LookAt(Position, new Vector3(0,0,0), _up);
+            //return Matrix4.LookAt(Position, Position - _front, _up);
+            return Matrix4.LookAt(Position + movey, new Vector3(0,0,0) + movey, _up);
         }
 
         // Get the projection matrix using the same method we have used up until this point

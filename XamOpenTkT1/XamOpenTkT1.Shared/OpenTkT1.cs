@@ -62,19 +62,35 @@ namespace XamOpenTkT1
         private readonly SwipeGestureRecognizer _swipeGesture =
             new SwipeGestureRecognizer();
 
+        private ScaleRequestHandlerDelegate _scaleRequestHandler;
+
+        private Action<Xamarin.Forms.Rectangle> _onDisplayHandler;
+
         public delegate void ScaleRequestHandlerDelegate(double scale);
 
-        private ScaleRequestHandlerDelegate _scaleRequestHandler;
+
+        protected Stopwatch _stopwatch = new Stopwatch();
+
+        // camera
+        protected OpenGLDemo.Camera _camera;
+        private bool _firstMove = true;
+        private Vector2 _lastPos;
 
         public double WidthInPixels => _widthInPixels;
         public double HeightInPixels => _heightInPixels;
 
         public OpenGLView View => _oGlv;
 
-        public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
+        /*public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
         {
             set => _oGlv.OnDisplay = value;
             get => _oGlv.OnDisplay;
+        }*/
+
+        public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
+        {
+            set => _onDisplayHandler = value;
+            get => _onDisplayHandler;
         }
 
         //*********************************************************************
@@ -93,6 +109,20 @@ namespace XamOpenTkT1
         public ScaleRequestHandlerDelegate OnScaleRequest
         {
             set => _scaleRequestHandler  = value;
+        }
+
+        //*********************************************************************
+        ////
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="obj"></param>
+        ///
+        //*********************************************************************
+
+        private void OnDisplay(Xamarin.Forms.Rectangle obj)
+        {
+            _onDisplayHandler?.Invoke(obj);
         }
 
         //*********************************************************************
@@ -162,7 +192,33 @@ namespace XamOpenTkT1
                 HasRenderLoop = true,
                 HeightRequest = heightRequest,
                 WidthRequest = widthRequest,
+                OnDisplay = OnDisplay
             };
+
+            init();
+        }
+
+        //*********************************************************************
+        //*
+        //* Init
+        //*
+        //* Non openGL init stuff goes here
+        //*
+        //*********************************************************************
+
+        private void init()
+        {
+            _stopwatch.Start();
+
+            // We initialize the camera so that it is 3 units back from where the rectangle is
+            // and give it the proper aspect ratio
+            _camera = new OpenGLDemo.Camera(Vector3.UnitZ * (float)1.0, (float)(_widthInPixels / _heightInPixels));
+            //_camera = new OpenGLDemo.Camera(Vector3.UnitZ * -30, (float)(WidthInPixels / HeightInPixels));
+
+            OnTapHandler = OnTap;
+            OnPinchHandler = OnPinch;
+            OnPanHandler = OnPan;
+            OnSwipeHandler = OnSwipe;
         }
 
         //*********************************************************************
@@ -203,6 +259,98 @@ namespace XamOpenTkT1
                     _oGlv.Display();
                     break;
             }
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnSwipe(object sender, SwipedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"> OnSwipe({e.Direction})");
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnPan(object sender, PanUpdatedEventArgs e)
+        {
+            double cameraSpeed = 0.001;
+
+            switch (e.StatusType)
+            {
+                case GestureStatus.Started:
+                    break;
+                case GestureStatus.Running:
+
+                    // If pan
+                    _camera.Position += _camera.Right * (float)(e.TotalX * cameraSpeed);
+                    //_camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up
+
+                    // If rotate
+                    //_camera.Yaw += deltaX * sensitivity;
+                    //_camera.Pitch -= deltaY * sensitivity; // reversed since y-coordinates range from bottom to top
+
+                    break;
+                case GestureStatus.Canceled:
+                    break;
+                case GestureStatus.Completed:
+                    break;
+            }
+
+            // positive x: right, y: down
+            // negative x: left, y: up
+
+            System.Diagnostics.Debug.WriteLine(
+                $"> OnPan({e.StatusType.ToString()}, x:{e.TotalX}, y:{e.TotalY})");
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnPinch(object sender, PinchGestureUpdatedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"> OnPinch({e.Status.ToString()}, x:{e.ScaleOrigin.X}, y:{e.ScaleOrigin.Y}, scale:{e.Scale})");
+
+            // If zoom
+            //_camera.Position += _camera.Front * cameraSpeed * (float)e.Time; // Forward 
+
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        ///
+        //*********************************************************************
+
+        private void OnTap(object sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("> OnTap()");
         }
     }
 
@@ -456,7 +604,6 @@ namespace XamOpenTkT1
     {
         private OpenGLDemo.ControlSurface controlSurface;
         private RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pointCloudData;
-        Stopwatch _stopwatch = new Stopwatch();
 
         // Create the vertices for our triangle. These are listed in normalized device coordinates (NDC)
         // In NDC, (0, 0) is the center of the screen.
@@ -526,12 +673,7 @@ namespace XamOpenTkT1
         };
 
         // transform intitialized to do nothing
-        private Matrix4 _transform = Matrix4.Identity;
-
-        // camera
-        private OpenGLDemo.Camera _camera;
-        private bool _firstMove = true;
-        private Vector2 _lastPos;
+        //private Matrix4 _transform = Matrix4.Identity;
 
         private double _time;
 
@@ -561,7 +703,6 @@ namespace XamOpenTkT1
         public OpenTkTutorialView(OpenGLDemo.ControlSurface cs, Frame gestureOverlayFrame) : 
             base(300, 300, gestureOverlayFrame)
         {
-            _stopwatch.Start();
             controlSurface = cs;
             OnLoad();
         }
@@ -578,10 +719,10 @@ namespace XamOpenTkT1
         {
             base.OnDisplayHandler = OnDisplay;
 
-            OnTapHandler = OnTap;
-            OnPinchHandler = OnPinch;
-            OnPanHandler = OnPan;
-            OnSwipeHandler = OnSwipe;
+            //OnTapHandler = OnTap;
+            //OnPinchHandler = OnPinch;
+            //OnPanHandler = OnPan;
+            //OnSwipeHandler = OnSwipe;
 
             OnScaleRequest = OnScaleRequestHandler;
         }
@@ -1078,7 +1219,7 @@ namespace XamOpenTkT1
 
             // We initialize the camera so that it is 3 units back from where the rectangle is
             // and give it the proper aspect ratio
-            _camera = new OpenGLDemo.Camera(Vector3.UnitZ * (float)-1.0, (float)(WidthInPixels / HeightInPixels));
+            //_camera = new OpenGLDemo.Camera(Vector3.UnitZ * (float)-1.0, (float)(WidthInPixels / HeightInPixels));
             //_camera = new OpenGLDemo.Camera(Vector3.UnitZ * -30, (float)(WidthInPixels / HeightInPixels));
 
             // Mark GL as  initialized
@@ -1116,8 +1257,8 @@ namespace XamOpenTkT1
             _time = _stopwatch.ElapsedMilliseconds / 40;
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
             _shader.SetMatrix4("model", model);
-            _shader.SetMatrix4("view", _camera.GetViewMatrix());
-            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            _shader.SetMatrix4("view", base._camera.GetViewMatrix());
+            //_shader.SetMatrix4("projection", base._camera.GetProjectionMatrix());
 
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
