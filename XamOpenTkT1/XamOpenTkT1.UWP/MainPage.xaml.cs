@@ -22,9 +22,11 @@ namespace XamOpenTkT1.UWP
             this.InitializeComponent();
 
             //LoadApplication(new XamOpenTkT1.App());
-            LoadApplication(new XamOpenTkT1.OpenTkT1App());
+            //LoadApplication(new XamOpenTkT1.OpenTkT1App());
 
-           
+            var controlSurface = new OpenGLDemo.ControlSurface();
+            var app = new XamOpenTkT1.App(controlSurface);
+            LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage, "OGL", controlSurface));
         }
     }
 }

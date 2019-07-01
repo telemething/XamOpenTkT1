@@ -1,4 +1,11 @@
-﻿#if !___XAM_FORMS___
+﻿using Button = Xamarin.Forms.Button;
+using ColumnDefinition = Xamarin.Forms.ColumnDefinition;
+using Frame = Xamarin.Forms.Frame;
+using Grid = Xamarin.Forms.Grid;
+using Page = Xamarin.Forms.Page;
+using RowDefinition = Xamarin.Forms.RowDefinition;
+using Slider = Xamarin.Forms.Slider;
+#if !___XAM_FORMS___
 using OpenGLDemo;
 using System;
 using System.Buffers;
@@ -13,7 +20,10 @@ using OpenTK;
 using Foundation;
 using CoreGraphics;
 using OpenTK.Graphics.ES30;
+using Xamarin.Forms.PlatformConfiguration;
 #elif WINDOWS_UWP
+using Windows.UI.Xaml.Controls;
+using Xamarin.Forms.Platform.UWP;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
@@ -46,9 +56,12 @@ namespace XamOpenTkT1
     {
         private readonly double _widthInPixels = 0;
         private readonly double _heightInPixels = 0;
-        private readonly OpenGLView _oGlv;
         private readonly Frame _gestureOverlayFrame;
-
+#if WINDOWS_UWP
+        private Windows.UI.Xaml.Controls.SwapChainPanel _swapChainPanel;
+#else
+        private readonly OpenGLView _oGlv;
+#endif
         private double _scale;
         public Vector3 _position = new Vector3(0.0f, 0.0f, 0.8f);
         public Matrix4 _model;
@@ -79,7 +92,11 @@ namespace XamOpenTkT1
         public double WidthInPixels => _widthInPixels;
         public double HeightInPixels => _heightInPixels;
 
+#if WINDOWS_UWP
+        public Windows.UI.Xaml.Controls.SwapChainPanel View => _swapChainPanel;
+#else
         public OpenGLView View => _oGlv;
+#endif
 
         /*public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
         {
@@ -187,6 +204,9 @@ namespace XamOpenTkT1
             _heightInPixels = heightRequest;
             _gestureOverlayFrame = gestureOverlayFrame;
 
+#if WINDOWS_UWP
+            _swapChainPanel = new SwapChainPanel(); //TODO: we need init values
+#else
             _oGlv = new OpenGLView
             {
                 HasRenderLoop = true,
@@ -194,6 +214,7 @@ namespace XamOpenTkT1
                 WidthRequest = widthRequest,
                 OnDisplay = OnDisplay
             };
+#endif
 
             init();
         }
@@ -247,6 +268,9 @@ namespace XamOpenTkT1
 
         public void Render(RenderTypeEnum renderType)
         {
+#if WINDOWS_UWP
+            //TODO: what do we do here?
+#else
             switch (renderType)
             {
                 case RenderTypeEnum.run:
@@ -259,6 +283,8 @@ namespace XamOpenTkT1
                     _oGlv.Display();
                     break;
             }
+#endif
+
         }
 
         //*********************************************************************
@@ -478,6 +504,15 @@ namespace XamOpenTkT1
         private OpenTkTutorialView _openTkTutorialView;
         private Frame _gestureOverlayFrame;
 
+#if WINDOWS_UWP
+        readonly Windows.UI.Xaml.Controls.SwapChainPanel _swapChainPanel;
+        Xamarin.Forms.View _swapChainView;
+        private GLUWP.OpenGLES mOpenGLES;
+        private GLUWP.EGLSurface mRenderSurface; // This surface is associated with a swapChainPanel on the page
+        private object mRenderSurfaceCriticalSection = new object();
+        private Windows.Foundation.IAsyncAction mRenderLoopWorker;
+#endif
+
         public OpenTkTutorialView openTkTutorialView
         {
             get => _openTkTutorialView;
@@ -519,7 +554,26 @@ namespace XamOpenTkT1
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
+#if WINDOWS_UWP
+            _swapChainPanel = openTkTutorialView.View;
+            _swapChainView = openGlView.ToView();
+            grid.Children.Add(_swapChainView, 0, 0); //TODO: Does this work?
+
+            mOpenGLES = new GLUWP.OpenGLES(); //TODO: can we create this here? example shows created from App.
+            mRenderSurface = GLUWP.EGL.NO_SURFACE;
+
+            Windows.UI.Core.CoreWindow window = Windows.UI.Xaml.Window.Current.CoreWindow;
+
+            window.VisibilityChanged += 
+                new Windows.Foundation.TypedEventHandler<
+                    Windows.UI.Core.CoreWindow, 
+                    Windows.UI.Core.VisibilityChangedEventArgs>((win, args) => OnVisibilityChanged(win, args));
+
+            //Loaded += (sender, args) => OnPageLoaded(sender, args);
+            Windows.UI.Xaml.Window.Current.Activated += (sender, args) => OnPageLoaded(sender, args); //TODO : does this work?
+#else
             grid.Children.Add(openGlView, 0, 0);
+#endif
             grid.Children.Add(_gestureOverlayFrame, 0, 0);
 
             // switch and button
@@ -554,6 +608,149 @@ namespace XamOpenTkT1
 
             Content = stack;
         }
+
+#if WINDOWS_UWP
+
+        private void OnPageLoaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            // The SwapChainPanel has been created and arranged in the page layout, so EGL can be initialized.
+            CreateRenderSurface();
+            StartRenderLoop();
+        }
+
+        private void OnPageLoaded(object sender, Windows.UI.Core.WindowActivatedEventArgs e)
+        {
+            // The SwapChainPanel has been created and arranged in the page layout, so EGL can be initialized.
+            CreateRenderSurface();
+            StartRenderLoop();
+        }
+
+        private void OnVisibilityChanged(Windows.UI.Core.CoreWindow sender, Windows.UI.Core.VisibilityChangedEventArgs args)
+        {
+            if (args.Visible && mRenderSurface != GLUWP.EGL.NO_SURFACE)
+            {
+                StartRenderLoop();
+            }
+            else
+            {
+                StopRenderLoop();
+            }
+        }
+
+        private void CreateRenderSurface()
+        {
+            if (mOpenGLES != null && mRenderSurface == GLUWP.EGL.NO_SURFACE)
+            {
+                // The app can configure the the SwapChainPanel which may boost performance.
+                // By default, this template uses the default configuration.
+                mRenderSurface = mOpenGLES.CreateSurface(_swapChainPanel, null, null);
+
+                // You can configure the SwapChainPanel to render at a lower resolution and be scaled up to
+                // the swapchain panel size. This scaling is often free on mobile hardware.
+                //
+                // One way to configure the SwapChainPanel is to specify precisely which resolution it should render at.
+                // Size customRenderSurfaceSize = Size(800, 600);
+                // mRenderSurface = mOpenGLES->CreateSurface(swapChainPanel, &customRenderSurfaceSize, nullptr);
+                //
+                // Another way is to tell the SwapChainPanel to render at a certain scale factor compared to its size.
+                // e.g. if the SwapChainPanel is 1920x1280 then setting a factor of 0.5f will make the app render at 960x640
+                // float customResolutionScale = 0.5f;
+                // mRenderSurface = mOpenGLES->CreateSurface(swapChainPanel, nullptr, &customResolutionScale);
+                // 
+            }
+        }
+
+        private void DestroyRenderSurface()
+        {
+            if (mOpenGLES != null)
+            {
+                mOpenGLES.DestroySurface(mRenderSurface);
+            }
+
+            mRenderSurface = GLUWP.EGL.NO_SURFACE;
+        }
+
+        void RecoverFromLostDevice()
+        {
+            // Stop the render loop, reset OpenGLES, recreate the render surface
+            // and start the render loop again to recover from a lost device.
+
+            StopRenderLoop();
+
+            {
+                lock (mRenderSurfaceCriticalSection)
+                {
+                    DestroyRenderSurface();
+                    mOpenGLES.Reset();
+                    CreateRenderSurface();
+                }
+            }
+
+            StartRenderLoop();
+        }
+
+        void StartRenderLoop()
+        {
+            // If the render loop is already running then do not start another thread.
+            if (mRenderLoopWorker != null && mRenderLoopWorker.Status == Windows.Foundation.AsyncStatus.Started)
+            {
+                return;
+            }
+
+            // Create a task for rendering that will be run on a background thread.
+            var workItemHandler =
+                new Windows.System.Threading.WorkItemHandler(action =>
+                {
+                    lock (mRenderSurfaceCriticalSection)
+                    {
+                        mOpenGLES.MakeCurrent(mRenderSurface);
+                        
+                        //SimpleRenderer renderer = new SimpleRenderer();
+                        ITTRender renderer = _openTkTutorialView;
+
+                        while (action.Status == Windows.Foundation.AsyncStatus.Started)
+                        {
+                            int panelWidth = 0;
+                            int panelHeight = 0;
+                            mOpenGLES.GetSurfaceDimensions(mRenderSurface, ref panelWidth, ref panelHeight);
+
+                            // Logic to update the scene could go here
+                            renderer.UpdateWindowSize(panelWidth, panelHeight);
+                            renderer.Draw();
+
+                            // The call to eglSwapBuffers might not be successful (i.e. due to Device Lost)
+                            // If the call fails, then we must reinitialize EGL and the GL resources.
+                            if (mOpenGLES.SwapBuffers(mRenderSurface) != GLUWP.EGL.TRUE)
+                            {
+                                // XAML objects like the SwapChainPanel must only be manipulated on the UI thread.
+                                _swapChainPanel.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.High,
+                                    new Windows.UI.Core.DispatchedHandler(() =>
+                                    {
+                                        RecoverFromLostDevice();
+                                    }));
+
+                                return;
+                            }
+                        }
+                    }
+                });
+
+            // Run task on a dedicated high priority background thread.
+            mRenderLoopWorker = Windows.System.Threading.ThreadPool.RunAsync(workItemHandler,
+                Windows.System.Threading.WorkItemPriority.High,
+                Windows.System.Threading.WorkItemOptions.TimeSliced);
+        }
+
+        void StopRenderLoop()
+        {
+            if (mRenderLoopWorker != null)
+            {
+                mRenderLoopWorker.Cancel();
+                mRenderLoopWorker = null;
+            }
+        }
+
+#endif
     }
 
     //*************************************************************************
@@ -588,7 +785,20 @@ namespace XamOpenTkT1
             if (blue >= 1.0f)
                 blue -= 1.0f;
         }
+    }
 
+    //*************************************************************************
+    ///
+    /// <summary>
+    /// Interface for UpdateWindowSize and Draw events from Windows
+    /// </summary>
+    ///
+    /// ***********************************************************************
+
+    public interface ITTRender
+    {
+        void UpdateWindowSize(int width, int height);
+        void Draw();
     }
 
     //*************************************************************************
@@ -599,8 +809,8 @@ namespace XamOpenTkT1
     /// </summary>
     ///
     /// ***********************************************************************
-
-    public class OpenTkTutorialView : TTOpenGLView
+    
+    public class OpenTkTutorialView : TTOpenGLView, ITTRender
     {
         private OpenGLDemo.ControlSurface controlSurface;
         private RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pointCloudData;
@@ -814,7 +1024,7 @@ namespace XamOpenTkT1
         }
 
 
-        #region Shader Test Region
+#region Shader Test Region
         private float[] ExtractRgbFromPacky(float inColor)
         {
             uint ucolor = (uint)inColor;
@@ -843,7 +1053,7 @@ namespace XamOpenTkT1
             //return color / 255.0;
             return color;
         }
-        #endregion
+#endregion
 
         private bool haveNewTestCubeVertexData = false;
         private bool haveNewVertexData = false;
@@ -1273,6 +1483,16 @@ namespace XamOpenTkT1
 
             //GL.DrawElementsInstanced();
 #endif
+        }
+
+        void ITTRender.UpdateWindowSize(int width, int height)
+        {
+            System.Diagnostics.Debug.WriteLine("ITTRender.UpdateWindowSize()");
+        }
+
+        void ITTRender.Draw()
+        {
+            System.Diagnostics.Debug.WriteLine("ITTRender.Draw()");
         }
     }
 
