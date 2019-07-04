@@ -104,6 +104,33 @@ namespace XamOpenTkT1
             get => _oGlv.OnDisplay;
         }*/
 
+        public enum CameraMoveType
+        {
+            X, Y, Z, Roll, Pitch, Yaw
+        }
+
+        public void MoveCamera(CameraMoveType moveType, double amount)
+        {
+            switch (moveType)
+            {
+                case CameraMoveType.X:
+                    _camera.Position += Vector3.UnitX * (float)amount;
+                    break;
+                case CameraMoveType.Y:
+                    _camera.Position += Vector3.UnitY * (float)amount;
+                    break;
+                case CameraMoveType.Z:
+                    _camera.Position += Vector3.UnitZ * (float)amount;
+                    break;
+                case CameraMoveType.Roll:
+                    break;
+                case CameraMoveType.Pitch:
+                    break;
+                case CameraMoveType.Yaw:
+                    break;
+            }
+        }
+
         public Action<Xamarin.Forms.Rectangle> OnDisplayHandler
         {
             set => _onDisplayHandler = value;
@@ -549,15 +576,15 @@ namespace XamOpenTkT1
             //_openTkTutorialView.gestureOverlayFrame = _gestureOverlayFrame;
 
             // We use the grid to overlay the frame and openGlView
-            var grid = new Grid();
+            var gridV = new Grid();
 
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            gridV.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            gridV.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 #if WINDOWS_UWP
             _swapChainPanel = openTkTutorialView.View;
             _swapChainView = openGlView.ToView();
-            grid.Children.Add(_swapChainView, 0, 0); //TODO: Does this work?
+            gridV.Children.Add(_swapChainView, 0, 0); //TODO: Does this work?
 
             mOpenGLES = new GLUWP.OpenGLES(); //TODO: can we create this here? example shows created from App.
             mRenderSurface = GLUWP.EGL.NO_SURFACE;
@@ -572,14 +599,38 @@ namespace XamOpenTkT1
             //Loaded += (sender, args) => OnPageLoaded(sender, args);
             Windows.UI.Xaml.Window.Current.Activated += (sender, args) => OnPageLoaded(sender, args); //TODO : does this work?
 #else
-            grid.Children.Add(openGlView, 0, 0);
+            gridV.Children.Add(openGlView, 0, 0);
 #endif
-            grid.Children.Add(_gestureOverlayFrame, 0, 0);
+            gridV.Children.Add(_gestureOverlayFrame, 0, 0);
 
             // switch and button
             var toggle = new Xamarin.Forms.Switch { IsToggled = true };
             var button = new Button { Text = "Display" };
+
             var zoomSlider = new Slider();
+            var rollSlider = new Slider();
+            var pitchSlider = new Slider();
+            var yawSlider = new Slider();
+
+            var forwardButton = new Button() {Text = "F" };
+            var backButton = new Button() { Text = "B" };
+            var leftButton = new Button() { Text = "L" };
+            var rightButton = new Button() { Text = "R" };
+            var upButton = new Button() { Text = "U" };
+            var downButton = new Button() { Text = "D" };
+
+            forwardButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Z, -0.5); };
+            backButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Z, 0.5); };
+            leftButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.X, -0.5); };
+            rightButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.X, 0.5); };
+            upButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Y, 0.5); };
+            downButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Y, -0.5); };
+
+            var stackC = new StackLayout()
+            {
+                Orientation = StackOrientation.Horizontal,
+                Children = {leftButton, forwardButton, upButton, downButton, backButton, rightButton}
+            };
 
             toggle.Toggled += (s, a) =>
             {
@@ -600,13 +651,13 @@ namespace XamOpenTkT1
             };
 
             // create the stack
-            var stack = new StackLayout
+            var stackM = new StackLayout
             {
                 Padding = new Xamarin.Forms.Size(20, 20),
-                Children = { grid, toggle, button, zoomSlider }
+                Children = { gridV, toggle, button, zoomSlider, rollSlider, pitchSlider, yawSlider, stackC }
             };
 
-            Content = stack;
+            Content = stackM;
         }
 
 #if WINDOWS_UWP
@@ -1468,7 +1519,7 @@ namespace XamOpenTkT1
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
             _shader.SetMatrix4("model", model);
             _shader.SetMatrix4("view", base._camera.GetViewMatrix());
-            //_shader.SetMatrix4("projection", base._camera.GetProjectionMatrix());
+            _shader.SetMatrix4("projection", base._camera.GetProjectionMatrix());
 
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);

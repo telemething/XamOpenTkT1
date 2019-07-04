@@ -117,8 +117,8 @@ namespace OpenGLDemo
         {
             // Originally -, but it seems it must be + on Xamarin
             //return Matrix4.LookAt(Position, Position + _front, _up);
-            //return Matrix4.LookAt(Position, Position - _front, _up);
-            return Matrix4.LookAt(Position + movey, new Vector3(0,0,0) + movey, _up);
+            return Matrix4.LookAt(Position, Position + _front, _up);
+            //return Matrix4.LookAt(Position + movey, new Vector3(0,0,0) + movey, _up);
         }
 
         // Get the projection matrix using the same method we have used up until this point
