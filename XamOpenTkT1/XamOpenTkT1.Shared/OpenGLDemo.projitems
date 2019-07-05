@@ -11,15 +11,18 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Camera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ControlSurface.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DrawPointCloud.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ITTOglRender.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)OGlUtil.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)OpenTkT1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DrawMulticoloredCubes.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TTOglApp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TTOglPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TTOglView.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)mario.png" />
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\.glsl" />
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\shader - Copy.frag.glsl" />
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\shader - Copy.vert.glsl" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Shaders\Fragment.glsl" />

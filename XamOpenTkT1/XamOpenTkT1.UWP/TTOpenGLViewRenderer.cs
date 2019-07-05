@@ -1,46 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-/*namespace XamOpenTkT1.UWP
-{
-    class TTOpenGLViewRenderer
-    {
-    }
-}*/
-
-using OpenTK;
+﻿using OpenTK;
 using OpenTK.Graphics;
-using System;
-//using System.Windows.Threading;
 using System.ComponentModel;
-//using System.Windows.Forms;
-//using System.Windows.Forms.Integration;
-
 using Xamarin.Forms;
-
-
-//using CustomRenderer;
-//using CustomRenderer.UWP;
 using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Windows.ApplicationModel;
-using Windows.Devices.Enumeration;
-using Windows.Graphics.Display;
-using Windows.Media.Capture;
-using Windows.System.Display;
-using Windows.UI.Core;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Xamarin.Forms.Platform.UWP;
-using OpenTK.Graphics.OpenGL4;
 
 namespace XamOpenTkT1.UWP
 {

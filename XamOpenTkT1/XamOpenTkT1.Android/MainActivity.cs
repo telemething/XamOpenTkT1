@@ -26,7 +26,7 @@ namespace XamOpenTkT1.Droid
 
             var controlSurface = new OpenGLDemo.ControlSurface();
             var app = new App(controlSurface);
-            LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage,"OGL", controlSurface));
+            LoadApplication(new XamOpenTkT1.TTOglApp(app.mainPage,"OGL", controlSurface));
 
             //LoadApplication(new XamOpenTkT1.OpenTkT1App());
         }

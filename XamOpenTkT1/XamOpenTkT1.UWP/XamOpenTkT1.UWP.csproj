@@ -92,7 +92,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>XamOpenTK1.UWP.Key.pfx.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>XamoPENtK1uWP.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="App.xaml.cs">
@@ -184,7 +184,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="XamOpenTK1.UWP.Key.pfx.snk" />
+    <None Include="XamoPENtK1uWP.snk" />
   </ItemGroup>
   <Import Project="..\XamOpenTkT1.Shared\OpenGLDemo.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

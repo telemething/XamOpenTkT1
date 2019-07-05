@@ -214,7 +214,7 @@ namespace TTOpenGl
 
             //var assembly = typeof(App).GetTypeInfo ().Assembly;
 
-            var assembly = IntrospectionExtensions.GetTypeInfo(typeof(XamOpenTkT1.OpenTkT1App)).Assembly;
+            var assembly = IntrospectionExtensions.GetTypeInfo(typeof(XamOpenTkT1.TTOglApp)).Assembly;
 
             foreach (var res in assembly.GetManifestResourceNames())
                 System.Diagnostics.Debug.WriteLine("found resource: " + res);

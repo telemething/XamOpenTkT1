@@ -26,7 +26,7 @@ namespace XamOpenTkT1.UWP
 
             var controlSurface = new OpenGLDemo.ControlSurface();
             var app = new XamOpenTkT1.App(controlSurface);
-            LoadApplication(new XamOpenTkT1.OpenTkT1App(app.mainPage, "OGL", controlSurface));
+            LoadApplication(new XamOpenTkT1.TTOglApp(app.mainPage, "OGL", controlSurface));
         }
     }
 }
