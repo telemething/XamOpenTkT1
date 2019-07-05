@@ -23,8 +23,7 @@ namespace XamOpenTkT1
     //*************************************************************************
     ///
     /// <summary>
-    /// Draws a multicolored cube with three instances. Some unused code left
-    /// in place as examples of how to do some things.
+    /// Draws a point cloud
     /// </summary>
     ///
     /// ***********************************************************************
@@ -33,76 +32,20 @@ namespace XamOpenTkT1
     {
         private OpenGLDemo.ControlSurface controlSurface;
         private RosSharp.RosBridgeClient.Messages.Sensor.PointCloud2 pointCloudData;
+        private TTOpenGl.Shader _shader;
 
-        // Create the vertices for our triangle. These are listed in normalized device coordinates (NDC)
-        // In NDC, (0, 0) is the center of the screen.
-        // Negative X coordinates move to the left, positive X move to the right.
-        // Negative Y coordinates move to the bottom, positive Y move to the top.
+        private const Single defaultCubeEdgeLength = 0.1f;
+        private const int defaultCubeInstanceCount = 1000;
+        private const Single defaultCubeInstanceOffset = 0.2f;
 
-        const Single colorBlue = 4278190080.0f;
-        const Single colorGreen = 16711680.0f;
-        const Single colorRed = 65280.0f;
-
-        /* draws a square, must use 'BeginMode.Triangles' in 'GL.DrawElements' below
-        private float[] _vertices =
-        {
-            // positions         // colors
-            0.5f,  0.5f, 0.0f, colorRed,  // top right
-            0.5f,  -0.5f, 0.0f, colorRed,  // bottom right
-            -0.5f, -0.5f, 0.0f, colorBlue,  // bottom left
-            -0.5f,  0.5f,  0.0f, colorGreen   // top left
-        };
-
-        private uint[] _indices =
-        {
-            0, 1, 3, // The first triangle will be the bottom-right half of the triangle
-            1, 2, 3  // Then the second will be the top-right half of the triangle
-        };
-        */
-
-        /* draws a cube, must use 'BeginMode.TriangleStrip' in 'GL.DrawElements' below */
-        private const Single height = 0.1f;
-        private const Single width = 0.1f;
-        private const Single depth = 0.1f;
-
-        private float[] _vertices =
-        {
-            -width, -height, depth, colorRed,// 0
-            width, -height, depth, colorBlue,// 1
-            -width, height, depth, colorGreen,// 2
-            width, height, depth, colorRed,// 3
-            -width, -height, -depth, colorBlue,// 4
-            width, -height, -depth, colorGreen,// 5
-            -width, height, -depth, colorRed,// 6
-            width, height, -depth, colorBlue // 7
-        };
-
-        private uint[] _indices =
+        private float[] _cubeVertices;
+        private float[] _cubeInstances;
+        private uint[] _cubeIndices =
         {
             0, 1, 2, 3, 7, 1, 5, 4, 7, 6, 2, 4, 0, 1
         };
 
-        /*private float[] _instances =
-        {
-            -0.3f, -0.3f, -0.3f, colorRed,// 0
-            0.0f, 0.0f, 0.0f, colorGreen,// 0
-            0.3f, 0.3f, 0.3f, colorBlue // 0
-        };*/
-
-        private float[] _instances =
-        {
-            0.0f, 0.0f, 0.0f, // 0
-            0.3f, 0.3f, 0.3f, // 0
-            0.6f, 0.6f, 0.6f // 0
-        };
-
-        /*private float[] _instances =
-        {
-            0.0f, 0.0f, 0.0f // 0
-        };*/
-
-        // transform intitialized to do nothing
-        //private Matrix4 _transform = Matrix4.Identity;
+        private int _cubeInstanceCount;
 
         private double _time;
 
@@ -112,12 +55,8 @@ namespace XamOpenTkT1
         private int _elementBufferObject;
         private int _instanceBufferObject;
 
-        private TTOpenGl.Shader _shader;
-
         private bool glInitialized = false;
         private bool shadersBuilt = false;
-
-        private double _scale = 0.5;
 
         //*********************************************************************
         ///
@@ -133,6 +72,13 @@ namespace XamOpenTkT1
             base(300, 300, gestureOverlayFrame)
         {
             controlSurface = cs;
+            _cubeVertices = CreateCubeVertices(defaultCubeEdgeLength);
+
+            // Test
+            _cubeInstanceCount = defaultCubeInstanceCount;
+            _cubeInstances = CreateTestCubeInstances(_cubeInstanceCount, defaultCubeInstanceOffset);
+            // Test
+
             OnLoad();
         }
 
@@ -147,101 +93,7 @@ namespace XamOpenTkT1
         private void OnLoad()
         {
             base.OnDisplayHandler = OnDisplay;
-
-            //OnTapHandler = OnTap;
-            //OnPinchHandler = OnPinch;
-            //OnPanHandler = OnPan;
-            //OnSwipeHandler = OnSwipe;
-
-            OnScaleRequest = OnScaleRequestHandler;
         }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="scale"></param>
-        ///
-        //*********************************************************************
-
-        private void OnScaleRequestHandler(double scale)
-        {
-            System.Diagnostics.Debug.WriteLine($"> OnScaleRequest({scale})");
-
-            _scale = scale + 0.5;
-
-            //_transform = BuildTransform();
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        ///
-        //*********************************************************************
-
-        private void OnSwipe(object sender, SwipedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine($"> OnSwipe({e.Direction})");
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        ///
-        //*********************************************************************
-
-        private void OnPan(object sender, PanUpdatedEventArgs e)
-        {
-            switch (e.StatusType)
-            {
-                case GestureStatus.Started:
-                    break;
-            }
-
-            System.Diagnostics.Debug.WriteLine(
-                $"> OnPan({e.StatusType.ToString()}, x:{e.TotalX}, y:{e.TotalY})");
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        ///
-        //*********************************************************************
-
-        private void OnPinch(object sender, PinchGestureUpdatedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"> OnPinch({e.Status.ToString()}, x:{e.ScaleOrigin.X}, y:{e.ScaleOrigin.Y}, scale:{e.Scale})");
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// https://docs.microsoft.com/en-us/xamarin/xamarin-forms/app-fundamentals/gestures/
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        ///
-        //*********************************************************************
-
-        private void OnTap(object sender, EventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("> OnTap()");
-        }
-
 
         #region Shader Test Region
         private float[] ExtractRgbFromPacky(float inColor)
@@ -280,13 +132,75 @@ namespace XamOpenTkT1
         //*********************************************************************
         ///
         /// <summary>
-        /// Updating buffer data can only take place in the OpenGL thread, so is a
-        /// two step process. 1) we signal the update here, 2) we execute the update
-        /// by calling DoUpdateVertexData() from OnDisplay()
+        /// 
         /// </summary>
+        /// <param name="edgeLength"></param>
+        /// <returns></returns>
         ///
         //*********************************************************************
-        public void SetUpdateVertexData()
+
+        private float[] CreateCubeVertices(float edgeLength)
+        {
+            var height = edgeLength;
+            var width = edgeLength;
+            var depth = edgeLength;
+
+            return new float[]
+            {
+                -width, -height, depth,// 0
+                width, -height, depth, // 1
+                -width, height, depth, // 2
+                width, height, depth, // 3
+                -width, -height, -depth, // 4
+                width, -height, -depth, // 5
+                -width, height, -depth, // 6
+                width, height, -depth // 7
+            };
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="count"></param>
+        /// <param name="offset"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
+
+        private float[] CreateTestCubeInstances(int count, float offset)
+        {
+            Single colorBlue = 4278190080.0f;
+            Single colorGreen = 16711680.0f;
+            Single colorRed = 65280.0f;
+
+            Single[] colors = {colorBlue, colorGreen, colorRed};
+            float[] instances = new float[count * 4];
+            float current = 0.0f;
+
+            for (int index = 0; index < count * 4; index++)
+            {
+                instances[index++] = current;
+                instances[index++] = current;
+                instances[index++] = current;
+                instances[index] = colors[index % 3];
+                current += offset;
+            }
+
+            return instances;
+        }
+
+    //*********************************************************************
+    ///
+    /// <summary>
+    /// Updating buffer data can only take place in the OpenGL thread, so is a
+    /// two step process. 1) we signal the update here, 2) we execute the update
+    /// by calling DoUpdateVertexData() from OnDisplay()
+    /// </summary>
+    ///
+    //*********************************************************************
+    public void SetUpdateVertexData()
         {
             haveNewTestCubeVertexData = true;
         }
@@ -331,12 +245,12 @@ namespace XamOpenTkT1
 
                 //*** Set new buffer data ****
 #if WINDOWS_UWP
-                GL.BufferData( BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+                GL.BufferData( BufferTarget.ArrayBuffer, _cubeVertices.Length * sizeof(float), _cubeVertices, BufferUsageHint.StaticDraw);
 #else
-                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices,
+                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeVertices.Length * sizeof(float)), _cubeVertices,
                     BufferUsage.StaticDraw);
 
-                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_indices.Length * sizeof(uint)), _indices,
+                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_cubeIndices.Length * sizeof(uint)), _cubeIndices,
                     BufferUsage.StaticDraw);
 #endif
 
@@ -461,12 +375,12 @@ namespace XamOpenTkT1
         {
             //*** TODO * Look into this
             // https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object
-            //GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero, (IntPtr) (_vertices.Length * sizeof(float)),
+            //GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero, (IntPtr) (_cubeVertices.Length * sizeof(float)),
             //    BufferAccessMask.MapWriteBit);
 
             TTOpenGl.OGlUtil.ClearOGLErrors();
             controlSurface.ArrayBufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer,
-                IntPtr.Zero, (IntPtr)(_vertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
+                IntPtr.Zero, (IntPtr)(_cubeVertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
             TTOpenGl.OGlUtil.CheckOGLError();
         }
 
@@ -491,55 +405,6 @@ namespace XamOpenTkT1
             }
         }
 
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// 
-        /// </summary>
-        ///
-        //*********************************************************************
-
-        private Matrix4 BuildTransformy()
-        {
-            //var transform = Matrix4.Identity;
-
-            TTOpenGl.OGlUtil.ClearOGLErrors();
-
-            var rotation1 = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20.0f));
-            var rotation2 = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(20.0f));
-            var rotation = rotation1 * rotation2;
-
-#if WINDOWS_UWP
-            var scale = Matrix4.CreateScale(0.5f, 0.5f, 0.5f);
-#else
-            //var scale = Matrix4.Scale(0.5f, 0.5f, 0.5f);
-            var scale = Matrix4.Scale((float)_scale, (float)_scale, (float)_scale);
-#endif
-
-            var translation = Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f);
-            Matrix4 transform = rotation * scale * translation;
-
-            TTOpenGl.OGlUtil.CheckOGLError();
-
-            return transform;
-        }
-
-        private void SetupProjection()
-        {
-            TTOpenGl.OGlUtil.ClearOGLErrors();
-
-            float aspect = (float)(WidthInPixels / HeightInPixels);
-            if (aspect > 1)
-            {
-#if WINDOWS_UWP
-                Matrix4 scale = Matrix4.CreateScale(aspect);
-#else
-                Matrix4 scale = Matrix4.Scale(aspect);
-#endif
-                base._model = Matrix4.Mult(base._model, scale);
-            }
-        }
-
         ///*********************************************************************
         ///
         /// <summary>
@@ -557,22 +422,8 @@ namespace XamOpenTkT1
             if (!shadersBuilt)
             {
                 BuildShaders();
-                SetupProjection();
-                //_transform = BuildTransform();
                 //MapCopyBuffers();
             }
-
-            //controlSurface
-
-            //var color = ExtractRgbFromPack(_vertices[3]);
-            //color = ExtractRgbFromPack(_vertices[9]);
-            //color = ExtractRgbFromPack(_vertices[15]);
-
-            // https://github.com/xamarin/xamarin-macios/blob/master/src/OpenGL/OpenTK/Graphics/OpenGL/GLEnums.cs
-            //ProgramPointSize = ((int)0x8642)
-            //GL.Enable((EnableCap)((int)0x8642));
-            //GL.Enable(EnableCap.ProgramPointSize);
-            //GL.ProgramParameter(1,ProgramParameterName., 0);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             GL.Enable(EnableCap.DepthTest);
@@ -581,9 +432,9 @@ namespace XamOpenTkT1
             GL.GenBuffers(1, out _instanceBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
 #if WINDOWS_UWP
-            GL.BufferData(BufferTarget.ArrayBuffer, _instances.Length * sizeof(float), _instances, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, _cubeInstances.Length * sizeof(float), _cubeInstances, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_instances.Length * sizeof(float)), _instances, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), _cubeInstances, BufferUsage.StaticDraw);
 #endif
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
@@ -591,17 +442,17 @@ namespace XamOpenTkT1
             GL.GenBuffers(1, out _vertexBufferObject);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
 #if WINDOWS_UWP
-            GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, _cubeVertices.Length * sizeof(float), _cubeVertices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_vertices.Length * sizeof(float)), _vertices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeVertices.Length * sizeof(float)), _cubeVertices, BufferUsage.StaticDraw);
 #endif
             // element buffer
             GL.GenBuffers(1, out _elementBufferObject);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
 #if WINDOWS_UWP
-            GL.BufferData( BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(float), _indices, BufferUsageHint.StaticDraw);
+            GL.BufferData( BufferTarget.ElementArrayBuffer, _cubeIndices.Length * sizeof(float), _cubeIndices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_indices.Length * sizeof(uint)), _indices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_cubeIndices.Length * sizeof(uint)), _cubeIndices, BufferUsage.StaticDraw);
 #endif
 
             // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
@@ -618,13 +469,8 @@ namespace XamOpenTkT1
             int aPositionLocation = _shader.GetAttribLocation("aPosition");
             GL.EnableVertexAttribArray(aPositionLocation);
             // location, element count, type, normalized?, stride bytes, offset bytes
-            GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-
-            //*** color ***
-            int aColorLocation = _shader.GetAttribLocation("aColor");
-            GL.EnableVertexAttribArray(aColorLocation);
-            // location, element count, type, normalized?, stride bytes, offset bytes
-            GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
+            //GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+            GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
 
             // Bind the VBO and EBO again so that the VAO will bind them as well.
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
@@ -635,9 +481,18 @@ namespace XamOpenTkT1
             GL.EnableVertexAttribArray(aOffsetLocation);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
             // location, element count, type, normalized?, stride bytes, offset bytes
-            GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 3 * sizeof(float));
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            //GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 3 * sizeof(float));
+            GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), IntPtr.Zero);
             GL.VertexAttribDivisor(aOffsetLocation, 1);
+
+            //*** instance color ***
+            int aColorLocation = _shader.GetAttribLocation("aColor");
+            GL.EnableVertexAttribArray(aColorLocation);
+            // location, element count, type, normalized?, stride bytes, offset bytes
+            GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
+            GL.VertexAttribDivisor(aColorLocation, 1);
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
             GL.BindVertexArray(0);
 
@@ -670,9 +525,6 @@ namespace XamOpenTkT1
             // Bind the VAO
             GL.BindVertexArray(_vertexArrayObject);
 
-            // Transform
-            //_shader.SetMatrix4("transform", _transform);
-
             _time = _stopwatch.ElapsedMilliseconds / 40;
             var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
             _shader.SetMatrix4("model", model);
@@ -682,15 +534,7 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 #else
-            GL.LineWidth((float)2.0);
-            //GL.DrawArrays(BeginMode.Triangles, 0, 3); // Original
-            //GL.DrawElements(BeginMode.Triangles, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
-            //GL.DrawElements(BeginMode.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // strip with indices
-            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, 3); // with indices
-            //GL.DrawElements(BeginMode.Points, _indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero); // with indices
-            //GL.DrawArrays(BeginMode.Points, 0, 4);
-
-            //GL.DrawElementsInstanced();
+            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _cubeIndices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, _cubeInstanceCount); // with indices
 #endif
         }
 
