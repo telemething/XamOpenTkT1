@@ -81,13 +81,22 @@ namespace XamOpenTkT1
 
         public delegate void ScaleRequestHandlerDelegate(double scale);
 
-
         protected Stopwatch _stopwatch = new Stopwatch();
 
         // camera
         protected OpenGLDemo.Camera _camera;
         private bool _firstMove = true;
         private Vector2 _lastPos;
+
+        public float CameraPitch
+        {
+            get { return _camera.Pitch; }
+        }
+
+        public float CameraYaw
+        {
+            get { return _camera.Yaw; }
+        }
 
         public double WidthInPixels => _widthInPixels;
         public double HeightInPixels => _heightInPixels;
@@ -125,8 +134,10 @@ namespace XamOpenTkT1
                 case CameraMoveType.Roll:
                     break;
                 case CameraMoveType.Pitch:
+                    _camera.Pitch = (float)amount;
                     break;
                 case CameraMoveType.Yaw:
+                    _camera.Yaw = (float)amount;
                     break;
             }
         }
@@ -609,8 +620,8 @@ namespace XamOpenTkT1
 
             var zoomSlider = new Slider();
             var rollSlider = new Slider();
-            var pitchSlider = new Slider();
-            var yawSlider = new Slider();
+            var pitchSlider = new Slider(){ Minimum = -90.0, Maximum = 90, Value = _openTkTutorialView .CameraPitch};
+            var yawSlider = new Slider(){ Minimum = -189.0, Maximum = 180, Value = _openTkTutorialView.CameraYaw };
 
             var forwardButton = new Button() {Text = "F" };
             var backButton = new Button() { Text = "B" };
@@ -625,6 +636,8 @@ namespace XamOpenTkT1
             rightButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.X, 0.5); };
             upButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Y, 0.5); };
             downButton.Clicked += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Y, -0.5); };
+            pitchSlider.ValueChanged += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Pitch, args.NewValue); };
+            yawSlider.ValueChanged += (sender, args) => { _openTkTutorialView.MoveCamera(TTOpenGLView.CameraMoveType.Yaw, args.NewValue); };
 
             var stackC = new StackLayout()
             {
