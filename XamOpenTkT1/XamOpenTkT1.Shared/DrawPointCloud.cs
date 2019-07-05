@@ -1,26 +1,9 @@
-﻿using Button = Xamarin.Forms.Button;
-using ColumnDefinition = Xamarin.Forms.ColumnDefinition;
-using Frame = Xamarin.Forms.Frame;
-using Grid = Xamarin.Forms.Grid;
-using Page = Xamarin.Forms.Page;
-using RowDefinition = Xamarin.Forms.RowDefinition;
-using Slider = Xamarin.Forms.Slider;
-#if !___XAM_FORMS___
-using OpenGLDemo;
+﻿#if !___XAM_FORMS___
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
 using Xamarin.Forms;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 #if __IOS__
-using UIKit;
 using OpenTK;
-using Foundation;
-using CoreGraphics;
 using OpenTK.Graphics.ES30;
-using Xamarin.Forms.PlatformConfiguration;
 #elif WINDOWS_UWP
 using Windows.UI.Xaml.Controls;
 using Xamarin.Forms.Platform.UWP;
@@ -29,14 +12,7 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
 using OpenTK;
 #elif __ANDROID__
-using Android.Icu.Text;
-using Android.Animation;
 using OpenTK;
-using Android.Util;
-using Android.App;
-using Android.Opengl;
-using Android.Graphics;
-using Android;
 using OpenTK.Graphics.ES30;
 #endif
 
@@ -153,7 +129,7 @@ namespace XamOpenTkT1
         ///
         //*********************************************************************
 
-        public DrawPointCloud(OpenGLDemo.ControlSurface cs, Frame gestureOverlayFrame) :
+        public DrawPointCloud(OpenGLDemo.ControlSurface cs, Xamarin.Forms.Frame gestureOverlayFrame) :
             base(300, 300, gestureOverlayFrame)
         {
             controlSurface = cs;
