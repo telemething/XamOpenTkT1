@@ -54,7 +54,7 @@ namespace XamOpenTkT1
 
     class TTOglPage : ContentPage
     {
-        private DrawMulticoloredCubes _renderer;
+        private DrawPointCloud _renderer;
         private Frame _gestureOverlayFrame;
 
 #if WINDOWS_UWP
@@ -66,7 +66,7 @@ namespace XamOpenTkT1
         private Windows.Foundation.IAsyncAction mRenderLoopWorker;
 #endif
 
-        public DrawMulticoloredCubes Renderer
+        public DrawPointCloud Renderer
         {
             get => _renderer;
         }
@@ -97,7 +97,7 @@ namespace XamOpenTkT1
             };
 
             // create the openGlView
-            _renderer = new DrawMulticoloredCubes(controlSurface, _gestureOverlayFrame);
+            _renderer = new DrawPointCloud(controlSurface, _gestureOverlayFrame);
             var openGlView = _renderer.View;
             //_renderer.gestureOverlayFrame = _gestureOverlayFrame;
 
@@ -108,7 +108,7 @@ namespace XamOpenTkT1
             gridV.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 #if WINDOWS_UWP
-            _swapChainPanel = DrawMulticoloredCubes.View;
+            _swapChainPanel = _renderer.View;
             _swapChainView = openGlView.ToView();
             gridV.Children.Add(_swapChainView, 0, 0); //TODO: Does this work?
 
