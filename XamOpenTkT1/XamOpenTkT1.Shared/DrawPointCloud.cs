@@ -1,4 +1,7 @@
-﻿#if !___XAM_FORMS___
+﻿
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#if !___XAM_FORMS___
 using System;
 using Xamarin.Forms;
 #if __IOS__
@@ -14,6 +17,8 @@ using OpenTK;
 #elif __ANDROID__
 using OpenTK;
 using OpenTK.Graphics.ES30;
+using TTOpenGl;
+
 #endif
 
 // OpenGLView Class https://docs.microsoft.com/en-us/dotnet/api/Xamarin.Forms.OpenGLView?view=xamarin-forms
@@ -35,7 +40,7 @@ namespace XamOpenTkT1
         private TTOpenGl.Shader _shader;
 
         private const Single defaultCubeEdgeLength = 0.1f;
-        private const int defaultCubeInstanceCount = 1000;
+        private const int defaultCubeInstanceCount = 3;
         private const Single defaultCubeInstanceOffset = 0.2f;
 
         private float[] _cubeVertices;
@@ -236,23 +241,9 @@ namespace XamOpenTkT1
             {
                 haveNewVertexData = false;
 
-                // do we need a new BindBuffer operation?
-
-                // do we need a new index array too?
-
-                // will this work somehow?
-                // GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
-
-                //*** Set new buffer data ****
-#if WINDOWS_UWP
-                GL.BufferData( BufferTarget.ArrayBuffer, _cubeVertices.Length * sizeof(float), _cubeVertices, BufferUsageHint.StaticDraw);
-#else
-                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeVertices.Length * sizeof(float)), _cubeVertices,
-                    BufferUsage.StaticDraw);
-
-                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_cubeIndices.Length * sizeof(uint)), _cubeIndices,
-                    BufferUsage.StaticDraw);
-#endif
+                TTOpenGl.OGlUtil.CopyToBuffer<byte>(
+                    BufferTarget.ArrayBuffer, _instanceBufferObject,
+                    (uint)1000, pointCloudData.data, 12);
 
                 return;
             }
@@ -434,7 +425,13 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.BufferData(BufferTarget.ArrayBuffer, _cubeInstances.Length * sizeof(float), _cubeInstances, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), _cubeInstances, BufferUsage.StaticDraw);
+            //GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), _cubeInstances, BufferUsage.StaticDraw);
+            //GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), IntPtr.Zero, BufferUsage.StaticDraw);
+
+            TTOpenGl.OGlUtil.CopyToBuffer<float>(
+                BufferTarget.ArrayBuffer, _instanceBufferObject, 
+                (uint)_cubeInstances.Length, _cubeInstances, 0);
+
 #endif
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
@@ -459,7 +456,7 @@ namespace XamOpenTkT1
             _shader.Use();
 
             //*** TODO * Problem: If we map the buffer, then the GL.BufferSubData() call appears to have no effect
-            MapCopyBuffers();
+            //MapCopyBuffers();
 
             //VAO stores the layout subsequently created with VertexAttribPointer and EnableVertexAttribArray
             GL.GenVertexArrays(1, out _vertexArrayObject);
@@ -515,12 +512,12 @@ namespace XamOpenTkT1
             if (!glInitialized)
                 InitGl();
 
-            DoUpdateVertexData();
-
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             // Bind the shader
             _shader.Use();
+
+            DoUpdateVertexData();
 
             // Bind the VAO
             GL.BindVertexArray(_vertexArrayObject);
