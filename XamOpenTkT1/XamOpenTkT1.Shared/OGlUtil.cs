@@ -34,11 +34,34 @@ namespace TTOpenGl
 {
     class OGlUtil
     {
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="handle"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
+
         public static IntPtr GetIntPtr(float[] data, out GCHandle handle)
         {
             handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             return Marshal.UnsafeAddrOfPinnedArrayElement(data, 0);
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="data"></param>
+        /// <param name="handle"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
 
         public static IntPtr GetIntPtr<T>(T[] data, out GCHandle handle) 
         {
@@ -46,15 +69,48 @@ namespace TTOpenGl
             return Marshal.UnsafeAddrOfPinnedArrayElement(data, 0);
         }
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="handle"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
+
         public static unsafe void* GetVoidPtr(float[] data, out GCHandle handle)
         {
             return GetVoidPtr(GetIntPtr(data, out handle));
         }
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="data"></param>
+        /// <param name="handle"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
+
         public static unsafe void* GetVoidPtr<T>(T[] data, out GCHandle handle)
         {
             return GetVoidPtr(GetIntPtr<T>(data, out handle));
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        ///
+        //*********************************************************************
 
         public static unsafe void* GetVoidPtr(IntPtr data)
         {
@@ -65,6 +121,86 @@ namespace TTOpenGl
         ///
         /// <summary>
         /// Copy memory directly to a buffer
+        /// https://mattwarren.org/2016/09/14/Subverting-.NET-Type-Safety-with-System.Runtime.CompilerServices.Unsafe/
+        /// https://www.khronos.org/opengl/wiki/Buffer_Object
+        /// https://www.khronos.org/opengl/wiki/Sync_Object
+        /// </summary>
+        /// <typeparam name="T">Data type</typeparam>
+        /// <param name="bufferTarget">OGL BufferTarget type</param>
+        /// <param name="targetBufferID">OGL Buffer ID</param>
+        /// <param name="targetBufferLength">Target Buffer Length, this may be irrelevant</param>
+        /// <param name="sourceData">Array of source data of type T</param>
+        /// <param name="length">Length of type T objects to copy</param>
+        ///
+        //*********************************************************************
+
+        public static void CopyToBuffer(BufferTarget bufferTarget,
+            int targetBufferID, uint targetBufferLength,
+            float[] sourceData, uint length)
+        {
+            try
+            {
+                if (0 == targetBufferLength)
+                    throw new Exception("targetBufferLength = 0");
+
+                // bind the given buffer
+                GL.BindBuffer(bufferTarget, targetBufferID);
+                TTOpenGl.OGlUtil.CheckOGLError();
+
+                //var typeSize = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+                var typeSize = System.Runtime.CompilerServices.Unsafe.SizeOf<float>();
+
+                // find the requested length in bytes
+                uint uLength;
+                if (0 == length)
+                {
+                    if (0 == sourceData.Length)
+                        throw new Exception("sourceData.Length = 0");
+
+                    uLength = (uint)(sourceData.Length * typeSize);
+                }
+                else
+                {
+                    if (sourceData.Length < length)
+                        throw new Exception("sourceData.length < requested length");
+
+                    uLength = (uint)(length * typeSize);
+                }
+
+                //TODO : for now we just clip, we should think about throwing or allocating more space
+                uLength = Math.Min(uLength, (uint)(targetBufferLength * typeSize));
+
+                //the old way
+                GL.BufferSubData<float>(bufferTarget, IntPtr.Zero, (IntPtr)(uLength), sourceData);
+
+                //the very old way
+                //GL.BufferData(bufferTarget, (IntPtr)uLength, sourceData, BufferUsage.DynamicDraw);
+
+                TTOpenGl.OGlUtil.CheckOGLError();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw new Exception("CopyToBuffer(): " + e.Message);
+            }
+            finally
+            {
+                // unbind the buffer so others don't accidentally operate on it
+                GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            }
+        }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// Copy memory directly to a buffer
+        /// https://mattwarren.org/2016/09/14/Subverting-.NET-Type-Safety-with-System.Runtime.CompilerServices.Unsafe/
+        /// https://www.khronos.org/opengl/wiki/Buffer_Object
+        /// https://www.khronos.org/opengl/wiki/Sync_Object
+        /// GLAPI / glMapBufferRange : https://www.khronos.org/opengl/wiki/GLAPI/glMapBufferRange
+        /// Buffer Object : https://www.khronos.org/opengl/wiki/Buffer_Object#Data_Specification
+        /// https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_copy_buffer.txt
+        /// https://learnopengl.com/Advanced-OpenGL/Advanced-Data
         /// </summary>
         /// <typeparam name="T">Data type</typeparam>
         /// <param name="bufferTarget">OGL BufferTarget type</param>
@@ -88,7 +224,6 @@ namespace TTOpenGl
 
                 // bind the given buffer
                 GL.BindBuffer(bufferTarget, targetBufferID);
-
                 TTOpenGl.OGlUtil.CheckOGLError();
 
                 var typeSize = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
@@ -114,9 +249,8 @@ namespace TTOpenGl
                 uLength = Math.Min(uLength, (uint)(targetBufferLength * typeSize));
 
 #if WINDOWS_UWP
-            GL.BufferData(BufferTarget.ArrayBuffer, _cubeInstances.Length * sizeof(float), _cubeInstances, BufferUsageHint.StaticDraw);
+                //GL.BufferData(BufferTarget.ArrayBuffer, _cubeInstances.Length * sizeof(float), _cubeInstances, BufferUsageHint.StaticDraw);
 #else
-                //GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), _cubeInstances, BufferUsage.StaticDraw);
                 GL.BufferData(bufferTarget, (IntPtr)uLength, IntPtr.Zero, BufferUsage.StaticDraw);
 #endif
                 TTOpenGl.OGlUtil.CheckOGLError();
@@ -161,6 +295,14 @@ namespace TTOpenGl
             }
         }
 
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
+
         public static void CheckOGLError()
         {
 #if WINDOWS_UWP
@@ -173,6 +315,14 @@ namespace TTOpenGl
                 throw new Exception("OGL Exception : " + ec.ToString());
             }
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
 
         public static void ClearOGLErrors()
         {

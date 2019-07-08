@@ -73,7 +73,8 @@ namespace XamOpenTkT1
         ///
         //*********************************************************************
 
-        public DrawPointCloud(OpenGLDemo.ControlSurface cs, Xamarin.Forms.Frame gestureOverlayFrame) :
+        public DrawPointCloud(OpenGLDemo.ControlSurface cs, 
+            Xamarin.Forms.Frame gestureOverlayFrame) :
             base(300, 300, gestureOverlayFrame)
         {
             controlSurface = cs;
@@ -81,7 +82,8 @@ namespace XamOpenTkT1
 
             // Test
             _cubeInstanceCount = defaultCubeInstanceCount;
-            _cubeInstances = CreateTestCubeInstances(_cubeInstanceCount, defaultCubeInstanceOffset);
+            _cubeInstances = CreateTestCubeInstances(
+                _cubeInstanceCount, defaultCubeInstanceOffset);
             // Test
 
             OnLoad();
@@ -241,9 +243,13 @@ namespace XamOpenTkT1
             {
                 haveNewVertexData = false;
 
-                TTOpenGl.OGlUtil.CopyToBuffer<byte>(
+                TTOpenGl.OGlUtil.CopyToBuffer<float>(
                     BufferTarget.ArrayBuffer, _instanceBufferObject,
-                    (uint)1000, pointCloudData.data, 12);
+                    (uint)_cubeInstances.Length, _cubeInstances, 0);
+
+                /*TTOpenGl.OGlUtil.CopyToBuffer<byte>(
+                    BufferTarget.ArrayBuffer, _instanceBufferObject,
+                    (uint)1000, pointCloudData.data, 48);*/
 
                 return;
             }
@@ -270,109 +276,6 @@ namespace XamOpenTkT1
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(3 * floatSize), (IntPtr)floatSize, ref d1);
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(7 * floatSize), (IntPtr)floatSize, ref d1);
             GL.BufferSubData<float>(BufferTarget.ArrayBuffer, (IntPtr)(11 * floatSize), (IntPtr)floatSize, ref d1);
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        ///
-        /// allows fast transfer in GPU with:
-        /// GL.CopyBufferSubData(BufferTarget.CopyWriteBuffer, BufferTarget.ArrayBuffer,
-        ///     IntPtr.Zero, IntPtr.Zero, (IntPtr)32);
-        /// </summary>
-        ///
-        /// GLAPI / glMapBufferRange : https://www.khronos.org/opengl/wiki/GLAPI/glMapBufferRange
-        /// Buffer Object : https://www.khronos.org/opengl/wiki/Buffer_Object#Data_Specification
-        /// https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_copy_buffer.txt
-        /// https://learnopengl.com/Advanced-OpenGL/Advanced-Data
-        ///
-        /// MapReadBit = 1,
-        /// MapWriteBit = 2,
-        /// MapInvalidateRangeBit = 4,
-        /// MapInvalidateBufferBit = 8,
-        /// MapFlushExplicitBit = 16,
-        /// MapUnsynchronizedBit = 32
-        ///
-        //***********************************************************************************
-
-        private void MapCopyBuffersy()
-        {
-            //IntPtr bufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
-            //IntPtr elementPointer = GL.MapBufferRange(BufferTarget.ElementArrayBuffer, IntPtr.Zero, (IntPtr)64, BufferAccessMask.MapWriteBit);
-
-            TTOpenGl.OGlUtil.ClearOGLErrors();
-
-            float[] testData1 =
-            {
-                // positions         // colors
-                0.5f,  0.5f, 0.0f, 4278190080.0f,  // bottom right
-                0.5f,  -0.5f, 0.0f, 4278190080.0f,  // bottom right
-                -0.5f, -0.5f, 0.0f, 16711680.0f,  // bottom left
-                -0.5f,  0.5f,  0.0f, 65280.0f   // top 
-            };
-
-            uint[] testData2 =
-            {
-                0, 1, 3, // The first triangle will be the bottom-right half of the triangle
-                1, 2, 3  // Then the second will be the top-right half of the triangle
-            };
-
-
-            int _copyReadBuffer;
-            int _copyWriteBuffer;
-
-            // ReadBuffer
-            GL.GenBuffers(1, out _copyReadBuffer);
-
-            TTOpenGl.OGlUtil.CheckOGLError();
-
-            GL.BindBuffer(BufferTarget.CopyReadBuffer, _copyReadBuffer);
-
-            TTOpenGl.OGlUtil.CheckOGLError();
-
-#if WINDOWS_UWP
-            GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)32,  (IntPtr)null, BufferUsageHint.StaticDraw);
-#else
-            GL.BufferData(BufferTarget.CopyReadBuffer, (IntPtr)(testData1.Length * sizeof(float)), testData1, BufferUsage.StaticDraw);
-#endif
-            TTOpenGl.OGlUtil.CheckOGLError();
-
-            controlSurface.CopyReadBufferPointer = GL.MapBufferRange(BufferTarget.CopyReadBuffer,
-                IntPtr.Zero, (IntPtr)(testData1.Length * sizeof(float)), BufferAccessMask.MapUnsynchronizedBit);
-
-            TTOpenGl.OGlUtil.CheckOGLError();
-
-            //WriteBuffer
-            GL.GenBuffers(1, out _copyWriteBuffer);
-            GL.BindBuffer(BufferTarget.CopyWriteBuffer, _copyWriteBuffer);
-#if WINDOWS_UWP
-            GL.BufferData(BufferTarget.CopyWriteBuffer, (IntPtr)32, (IntPtr)null, BufferUsageHint.StaticDraw);
-#else
-            GL.BufferData(BufferTarget.CopyWriteBuffer, (IntPtr)(testData2.Length * sizeof(uint)), testData2, BufferUsage.StaticDraw);
-#endif
-            controlSurface.CopyWriteBufferPointer = GL.MapBufferRange(BufferTarget.CopyWriteBuffer,
-                IntPtr.Zero, (IntPtr)(testData2.Length * sizeof(uint)), BufferAccessMask.MapUnsynchronizedBit);
-        }
-
-        //*********************************************************************
-        ///
-        /// <summary>
-        /// 
-        /// </summary>
-        ///
-        //*********************************************************************
-
-        private void MapCopyBuffers()
-        {
-            //*** TODO * Look into this
-            // https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object
-            //GL.MapBufferRange(BufferTarget.PixelPackBuffer, IntPtr.Zero, (IntPtr) (_cubeVertices.Length * sizeof(float)),
-            //    BufferAccessMask.MapWriteBit);
-
-            TTOpenGl.OGlUtil.ClearOGLErrors();
-            controlSurface.ArrayBufferPointer = GL.MapBufferRange(BufferTarget.ArrayBuffer,
-                IntPtr.Zero, (IntPtr)(_cubeVertices.Length * sizeof(float)), BufferAccessMask.MapWriteBit);
-            TTOpenGl.OGlUtil.CheckOGLError();
         }
 
         //*********************************************************************
@@ -426,10 +329,11 @@ namespace XamOpenTkT1
             GL.BufferData(BufferTarget.ArrayBuffer, _cubeInstances.Length * sizeof(float), _cubeInstances, BufferUsageHint.StaticDraw);
 #else
             //GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), _cubeInstances, BufferUsage.StaticDraw);
-            //GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeInstances.Length * sizeof(float)), IntPtr.Zero, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(
+                _cubeInstances.Length * sizeof(float)), IntPtr.Zero, BufferUsage.DynamicDraw);
 
             TTOpenGl.OGlUtil.CopyToBuffer<float>(
-                BufferTarget.ArrayBuffer, _instanceBufferObject, 
+                BufferTarget.ArrayBuffer, _instanceBufferObject,
                 (uint)_cubeInstances.Length, _cubeInstances, 0);
 
 #endif
@@ -441,7 +345,8 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.BufferData(BufferTarget.ArrayBuffer, _cubeVertices.Length * sizeof(float), _cubeVertices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(_cubeVertices.Length * sizeof(float)), _cubeVertices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(
+                _cubeVertices.Length * sizeof(float)), _cubeVertices, BufferUsage.StaticDraw);
 #endif
             // element buffer
             GL.GenBuffers(1, out _elementBufferObject);
@@ -449,7 +354,8 @@ namespace XamOpenTkT1
 #if WINDOWS_UWP
             GL.BufferData( BufferTarget.ElementArrayBuffer, _cubeIndices.Length * sizeof(float), _cubeIndices, BufferUsageHint.StaticDraw);
 #else
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(_cubeIndices.Length * sizeof(uint)), _cubeIndices, BufferUsage.StaticDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(
+                _cubeIndices.Length * sizeof(uint)), _cubeIndices, BufferUsage.StaticDraw);
 #endif
 
             // Enable the shader, this is global, so every function that uses a shader will modify this one until a new one is bound 
@@ -466,8 +372,8 @@ namespace XamOpenTkT1
             int aPositionLocation = _shader.GetAttribLocation("aPosition");
             GL.EnableVertexAttribArray(aPositionLocation);
             // location, element count, type, normalized?, stride bytes, offset bytes
-            //GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-            GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.VertexAttribPointer(aPositionLocation, 3, VertexAttribPointerType.Float, 
+                false, 3 * sizeof(float), 0);
 
             // Bind the VBO and EBO again so that the VAO will bind them as well.
             GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
@@ -478,15 +384,16 @@ namespace XamOpenTkT1
             GL.EnableVertexAttribArray(aOffsetLocation);
             GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
             // location, element count, type, normalized?, stride bytes, offset bytes
-            //GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 3 * sizeof(float));
-            GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, false, 4 * sizeof(float), IntPtr.Zero);
+            GL.VertexAttribPointer(aOffsetLocation, 3, VertexAttribPointerType.Float, 
+                false, 4 * sizeof(float), IntPtr.Zero);
             GL.VertexAttribDivisor(aOffsetLocation, 1);
 
             //*** instance color ***
             int aColorLocation = _shader.GetAttribLocation("aColor");
             GL.EnableVertexAttribArray(aColorLocation);
             // location, element count, type, normalized?, stride bytes, offset bytes
-            GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, false, 4 * sizeof(float), 3 * sizeof(float));
+            GL.VertexAttribPointer(aColorLocation, 1, VertexAttribPointerType.Float, 
+                false, 4 * sizeof(float), 3 * sizeof(float));
             GL.VertexAttribDivisor(aColorLocation, 1);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -496,7 +403,7 @@ namespace XamOpenTkT1
             // Mark GL as  initialized
             glInitialized = true;
         }
-
+        
         //*********************************************************************
         //*
         //* OnDisplay
@@ -508,37 +415,72 @@ namespace XamOpenTkT1
 
         private void OnDisplay(Xamarin.Forms.Rectangle obj)
         {
-            // GL Initialization must occur on this thread. Make sure it is called only once
-            if (!glInitialized)
-                InitGl();
+            try
+            {
+                // GL Initialization must occur on this thread. Make sure it is called only once
+                if (!glInitialized)
+                    InitGl();
 
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            // Bind the shader
-            _shader.Use();
+                DoUpdateVertexData();
 
-            DoUpdateVertexData();
+                // Bind the shader
+                _shader.Use();
 
-            // Bind the VAO
-            GL.BindVertexArray(_vertexArrayObject);
+                TTOpenGl.OGlUtil.CheckOGLError();
 
-            _time = _stopwatch.ElapsedMilliseconds / 40;
-            var model = Matrix4.Identity * Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(_time));
-            _shader.SetMatrix4("model", model);
-            _shader.SetMatrix4("view", base._camera.GetViewMatrix());
-            _shader.SetMatrix4("projection", base._camera.GetProjectionMatrix());
+                // Bind the VAO
+                GL.BindVertexArray(_vertexArrayObject);
+
+                TTOpenGl.OGlUtil.CheckOGLError();
+
+                _time = _stopwatch.ElapsedMilliseconds / 40;
+                var model = Matrix4.Identity * Matrix4.CreateRotationX(
+                                (float) MathHelper.DegreesToRadians(_time));
+                _shader.SetMatrix4("model", model);
+                _shader.SetMatrix4("view", base._camera.GetViewMatrix());
+                _shader.SetMatrix4("projection", base._camera.GetProjectionMatrix());
+
+                TTOpenGl.OGlUtil.CheckOGLError();
 
 #if WINDOWS_UWP
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+                GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 #else
-            GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, _cubeIndices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, _cubeInstanceCount); // with indices
+                GL.DrawElementsInstanced(PrimitiveType.TriangleStrip, 
+                    _cubeIndices.Length, DrawElementsType.UnsignedInt,
+                    IntPtr.Zero, _cubeInstanceCount); // with indices
 #endif
+                TTOpenGl.OGlUtil.CheckOGLError();
+            }
+            catch (Exception ex)
+            {
+                var ff = ex.Message;
+            }
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        ///
+        //*********************************************************************
 
         void ITTRender.UpdateWindowSize(int width, int height)
         {
             System.Diagnostics.Debug.WriteLine("ITTRender.UpdateWindowSize()");
         }
+
+        //*********************************************************************
+        ///
+        /// <summary>
+        /// 
+        /// </summary>
+        ///
+        //*********************************************************************
 
         void ITTRender.Draw()
         {
